@@ -1,0 +1,923 @@
+/* ==========================================================================
+   HEALTHJOBSGLOBAL.COM - COMPREHENSIVE RESPONSIVE STYLES
+   Breakpoints:
+   - 1200px: Laptops & Medium Desktops
+   - 992px:  Tablets (Portrait) & Small Laptops
+   - 768px:  Mobile Devices & Phablets
+   - 576px:  Standard Smartphones (iPhone, Android)
+   - 400px:  Compact Smartphones
+   ========================================================================== */
+
+/* Universal Responsive Utilities */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile Filter Bar & Toggle Defaults (Hidden on Desktop) */
+.mobile-filter-bar {
+  display: none;
+}
+
+.mobile-filter-toggle-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition-fast);
+}
+
+.mobile-filter-toggle-btn:hover,
+.mobile-filter-toggle-btn.active {
+  border-color: var(--color-secondary);
+  background: #F0FDFA;
+}
+
+.filter-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-fast);
+}
+
+.mobile-filter-toggle-btn.active .filter-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* ==========================================================================
+   1. LAPTOPS & MEDIUM DESKTOPS (max-width: 1200px)
+   ========================================================================== */
+@media (max-width: 1200px) {
+  .container {
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
+  }
+
+  .hero-grid {
+    gap: var(--space-8);
+  }
+
+  .departments-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .companies-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .footer-top-grid {
+    grid-template-columns: 1.5fr repeat(2, 1fr);
+    gap: var(--space-8);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .stat-item {
+    padding: 16px 14px;
+    gap: 12px;
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .stat-number {
+    font-size: 1.6rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+  }
+}
+
+/* ==========================================================================
+   2. TABLETS & SMALL LAPTOPS (max-width: 992px)
+   ========================================================================== */
+@media (max-width: 992px) {
+  /* Navigation Bar */
+  .nav-desktop {
+    display: none !important;
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+
+  .header-post-job-btn {
+    display: none !important;
+  }
+
+  .header-inner {
+    height: 68px;
+  }
+
+  /* Hero Section */
+  .hero-grid,
+  .hero-grid-auth,
+  .hero-grid-guest {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+  }
+
+  .hero-text-area {
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  .hero-search-box {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 650px;
+  }
+
+  .popular-searches {
+    justify-content: center;
+  }
+
+  .hero-visual {
+    margin: var(--space-8) auto 0 auto;
+    max-width: 600px;
+  }
+
+  /* Universal Sidebar Grid Collapse */
+  .jobs-directory-grid,
+  .layout-with-sidebar,
+  [style*="grid-template-columns: 1fr 340px"],
+  [style*="grid-template-columns: 1fr 320px"],
+  [style*="grid-template-columns: 1fr 380px"],
+  [style*="grid-template-columns: 280px 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-6) !important;
+  }
+
+  /* Mobile Collapsible Filter Sidebars */
+  .jobs-filter-sidebar,
+  .candidate-filter-sidebar {
+    position: static !important;
+    max-height: none !important;
+    width: 100% !important;
+    margin-bottom: 24px;
+    display: none;
+  }
+
+  .jobs-filter-sidebar.mobile-open,
+  .candidate-filter-sidebar.mobile-open {
+    display: block !important;
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  .mobile-filter-bar {
+    display: block !important;
+    margin-bottom: 16px;
+  }
+
+  /* 4-Column Grids -> 2x2 */
+  [style*="grid-template-columns: repeat(4, 1fr)"],
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .stat-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 16px 14px !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--color-border) !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 10px !important;
+  }
+
+  .stat-icon {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .stat-content {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .stat-number {
+    font-size: 1.55rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  .stat-label {
+    font-size: 0.8rem !important;
+    line-height: 1.3 !important;
+    word-break: break-word !important;
+  }
+
+  .hero-metrics-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* 3-Column Grids -> 2 Columns */
+  [style*="grid-template-columns: repeat(3, 1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  [style*="grid-column: span 3"] {
+    grid-column: span 2 !important;
+  }
+
+  /* Cards and Feature Grids */
+  .jobs-grid,
+  .cta-grid,
+  .internship-cards-grid,
+  .steps-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .profile-mockup-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .safety-guidelines-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Footer on Tablet */
+  .footer-top-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+  }
+
+  .footer-brand {
+    grid-column: span 2;
+  }
+}
+
+/* ==========================================================================
+   3. MOBILE DEVICES & PHABLETS (max-width: 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  :root {
+    --space-20: 40px;
+    --space-24: 48px;
+    --space-16: 32px;
+  }
+
+  .container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Header Optimization */
+  .header-inner {
+    height: 62px;
+  }
+
+  .site-logo {
+    font-size: 1.15rem;
+    gap: 8px;
+  }
+
+  .logo-symbol {
+    width: 32px;
+    height: 32px;
+  }
+
+  .logo-suffix {
+    display: none !important;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .header-login-btn {
+    padding: 6px 12px;
+    font-size: 0.82rem;
+  }
+
+  .header-register-btn {
+    display: none !important;
+  }
+
+  /* Logged-In User Header Pill */
+  .user-pill-text {
+    display: none !important;
+  }
+
+  .user-pill-arrow {
+    display: none !important;
+  }
+
+  .user-profile-toggle-btn {
+    padding: 2px !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .user-avatar-badge {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .user-header-dropdown {
+    right: -8px !important;
+    width: 280px !important;
+  }
+
+  /* Hero Section Typography & Form */
+  .hero-title {
+    font-size: clamp(1.85rem, 6.5vw, 2.35rem) !important;
+    line-height: 1.25;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .search-form-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+    padding: 10px;
+    border-radius: var(--radius-lg);
+  }
+
+  .search-field {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+
+  .search-field-title,
+  .search-field-loc,
+  .search-field-dept {
+    border-right: none !important;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .search-field-dept {
+    border-bottom: none;
+  }
+
+  .hero-submit-btn {
+    width: 100% !important;
+    padding: 12px !important;
+    justify-content: center;
+  }
+
+  .floating-card {
+    display: none !important;
+  }
+
+  .hero-main-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 18px 14px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .popular-searches {
+    gap: 6px;
+    font-size: 0.82rem;
+  }
+
+  .popular-tag {
+    padding: 4px 10px;
+    font-size: 0.78rem;
+  }
+
+  /* Universal 2-Column Form Rows -> 1 Column */
+  [style*="grid-template-columns: 1fr 1fr"],
+  .role-switcher-grid,
+  .form-grid-2col {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Universal 3-Column Grids -> 1 Column */
+  [style*="grid-template-columns: repeat(3, 1fr)"] {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  [style*="grid-column: span 3"],
+  [style*="grid-column: span 2"] {
+    grid-column: span 1 !important;
+  }
+
+  /* Grid Layouts to 1 Column */
+  .departments-grid,
+  .companies-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Safety & Profile Mockup */
+  .safety-card {
+    flex-direction: column;
+    padding: 20px 16px;
+    gap: 16px;
+  }
+
+  .safety-guidelines-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .profile-mockup-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .profile-mockup-details-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Job Card Mobile Styles */
+  .job-card {
+    padding: 18px 16px;
+  }
+
+  .job-card-header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .job-specs-pills {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .spec-pill {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .job-card-bottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .job-card-bottom > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .job-card-bottom > .flex {
+    width: 100% !important;
+    display: flex;
+    gap: 8px;
+  }
+
+  .job-card-bottom .btn {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Horizontal Tab Bars on Mobile */
+  .department-tabs,
+  .pipeline-tabs,
+  .filter-loc-tags {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 8px;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .department-tabs::-webkit-scrollbar,
+  .pipeline-tabs::-webkit-scrollbar,
+  .filter-loc-tags::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dept-tab-btn,
+  .pipeline-tab-btn,
+  .filter-loc-tag {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Content & Form Containers Mobile Padding */
+  main[style*="padding: 32px"],
+  main[style*="padding: 36px"],
+  main[style*="padding: 28px"],
+  div[style*="padding: 40px"],
+  div[style*="padding: 36px"],
+  div[style*="padding: 32px"],
+  div[style*="padding: 28px"] {
+    padding: 20px 16px !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  .auth-card-wrap {
+    padding: 24px 16px !important;
+  }
+
+  /* Candidate & Employer Header Actions on Mobile */
+  .candidate-header-actions,
+  .dashboard-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+    margin-top: 10px;
+  }
+
+  .candidate-header-actions .btn,
+  .dashboard-header-actions .btn {
+    flex: 1 !important;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Application Card Actions on Mobile */
+  .app-card-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+    margin-top: 8px;
+  }
+
+  .app-card-actions .btn {
+    flex: 1 !important;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .interview-alert-card .btn {
+    width: 100% !important;
+    margin-top: 8px;
+    justify-content: center;
+  }
+
+  /* Hospital Profile Header Layout */
+  .hospital-header-layout {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+    gap: 16px !important;
+  }
+
+  .hospital-emblem-card {
+    margin: 0 auto;
+  }
+
+  .hospital-title-row {
+    justify-content: center;
+  }
+
+  .hospital-meta-row {
+    justify-content: center;
+  }
+
+  .hospital-action-column {
+    width: 100%;
+  }
+
+  .hospital-cta-btn {
+    width: 100% !important;
+    justify-content: center;
+  }
+
+  /* Multi-step Registration Wizard */
+  .wizard-steps-header {
+    gap: 4px;
+    margin-bottom: var(--space-6);
+  }
+
+  .wizard-steps-header::before {
+    top: 15px;
+    left: 10px;
+    right: 10px;
+  }
+
+  .step-bubble {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .step-label {
+    font-size: 0.68rem !important;
+    max-width: 68px;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  /* Footer on Mobile */
+  .footer-top-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-6);
+  }
+
+  .footer-brand {
+    grid-column: span 1;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .footer-bottom .flex {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* Modals on Mobile */
+  .modal-window {
+    width: 94vw !important;
+    max-width: 94vw !important;
+    margin: 16px auto;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    padding: 16px 18px;
+  }
+
+  .modal-body {
+    padding: 16px 18px;
+  }
+}
+
+/* ==========================================================================
+   4. SMARTPHONES (max-width: 576px)
+   ========================================================================== */
+@media (max-width: 576px) {
+  /* Stats Cards Grid on Mobile */
+  [style*="grid-template-columns: repeat(4, 1fr)"],
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .trust-section {
+    padding: 24px 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .stat-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+    gap: 8px !important;
+    background: #FFFFFF !important;
+    border: 1px solid var(--color-border) !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .stat-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .stat-content {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .stat-number {
+    font-size: 1.4rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  .stat-label {
+    font-size: 0.75rem !important;
+    line-height: 1.25 !important;
+    margin-top: 2px !important;
+    word-break: break-word !important;
+  }
+
+  /* Compact Hero Metrics on Phones */
+  .hero-metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .metric-pill {
+    padding: 8px 6px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .metric-pill-title {
+    font-size: 0.65rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .metric-pill-val {
+    font-size: 0.88rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* Small Phone Role Buttons */
+  .role-switcher-grid button {
+    font-size: 0.82rem !important;
+    padding: 10px 8px !important;
+  }
+
+  .company-logo-avatar {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Table / Applicant row flex-wrap */
+  div[style*="justify-content: space-between"] {
+    flex-wrap: wrap;
+  }
+
+  /* Compact Hero Metrics on Phone */
+  .hero-metrics-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .metric-pill {
+    padding: 8px 6px !important;
+  }
+
+  .metric-pill-title {
+    font-size: 0.65rem !important;
+  }
+
+  .metric-pill-val {
+    font-size: 0.88rem !important;
+  }
+
+  /* Avatar scaling on phone */
+  .doctor-avatar-wrap {
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 1rem !important;
+  }
+
+  /* Fluid Headings on phone */
+  h1 {
+    font-size: clamp(1.45rem, 5.5vw, 1.85rem) !important;
+  }
+
+  h2 {
+    font-size: clamp(1.3rem, 5vw, 1.65rem) !important;
+  }
+}
+
+/* ==========================================================================
+   5. COMPACT SMARTPHONES (max-width: 400px)
+   ========================================================================== */
+@media (max-width: 400px) {
+  .site-logo {
+    font-size: 1.05rem;
+  }
+
+  .hero-title {
+    font-size: 1.75rem !important;
+  }
+
+  [style*="grid-template-columns: repeat(4, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==========================================================================
+   6. MOBILE NAVIGATION DRAWER
+   ========================================================================== */
+.mobile-nav-drawer {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 31, 51, 0.65);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-smooth);
+}
+
+.mobile-nav-drawer.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.drawer-content {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 86%;
+  max-width: 360px;
+  height: 100%;
+  background: #FFFFFF;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  transform: translateX(100%);
+  transition: transform var(--transition-smooth);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-nav-drawer.active .drawer-content {
+  transform: translateX(0);
+}
+
+.drawer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.drawer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.drawer-link {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.drawer-link:hover,
+.drawer-link.active {
+  background: #F0FDFA;
+  color: var(--color-secondary);
+}
+
+.drawer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
