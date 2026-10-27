@@ -178,7 +178,7 @@ require_once __DIR__ . '/components/header.php';
 
 <!-- Directory Header Bar -->
 <div style="background: #FFFFFF; border-bottom: 1px solid var(--color-border); padding: 26px 0;">
-  <div class="container">
+  <div class="container container-wide">
     <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 8px;">
       <a href="<?php echo BASE_URL; ?>/index.php" style="color: var(--color-text-secondary);">Home</a> / 
       <span style="color: var(--color-primary); font-weight: 600;">Healthcare Jobs</span>
@@ -206,7 +206,7 @@ require_once __DIR__ . '/components/header.php';
 </div>
 
 <!-- Main Directory Content -->
-<div class="container" style="padding-top: var(--space-8); padding-bottom: var(--space-20);">
+<div class="container container-wide" style="padding-top: var(--space-8); padding-bottom: var(--space-20);">
   
   <!-- Mobile Filter Toggle Bar (Visible on mobile/tablet <= 992px) -->
   <div class="mobile-filter-bar">

@@ -1,4 +1,4 @@
 <?php
-// Removed as requested
-header('Location: index.php');
+// Redirect to Admin Panel
+header('Location: admin/index.php');
 exit;

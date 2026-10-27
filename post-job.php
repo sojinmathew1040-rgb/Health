@@ -7,6 +7,19 @@ $pageDescription = "Create a verified healthcare vacancy with council registrati
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/functions.php';
+
+// Access Control: Only logged-in hospital employers can post vacancies
+if (!isLoggedIn()) {
+    header("Location: " . BASE_URL . "/login.php?redirect=" . urlencode(BASE_URL . "/post-job.php"));
+    exit;
+}
+
+$activeUser = getLoggedInUser();
+if (($activeUser['role'] ?? '') !== 'employer') {
+    header("Location: " . BASE_URL . "/employer-dashboard.php");
+    exit;
+}
+
 require_once __DIR__ . '/components/header.php';
 ?>
 

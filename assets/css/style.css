@@ -99,7 +99,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
   width: 100%;
 }
@@ -110,7 +110,7 @@ body {
   color: var(--color-text);
   line-height: 1.6;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
   width: 100%;
   position: relative;
@@ -2855,7 +2855,7 @@ h5 { font-size: 1.05rem; font-weight: 600; }
 
 .jobs-directory-grid {
   display: grid;
-  grid-template-columns: 310px 1fr;
+  grid-template-columns: 360px 1fr;
   gap: var(--space-8);
   align-items: start;
 }
@@ -2864,15 +2864,17 @@ h5 { font-size: 1.05rem; font-weight: 600; }
   background: #FFFFFF;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 22px;
+  padding: 24px 22px;
   position: sticky;
-  top: 90px;
-  max-height: calc(100vh - 110px);
+  top: 95px;
+  align-self: start;
+  max-height: calc(100vh - 115px);
   overflow-y: auto;
   overscroll-behavior: contain;
   box-shadow: 0 4px 16px rgba(11, 31, 51, 0.04);
   scrollbar-width: thin;
   scrollbar-color: rgba(14, 116, 144, 0.25) transparent;
+  z-index: 30;
 }
 
 .jobs-filter-sidebar::-webkit-scrollbar {
@@ -3049,7 +3051,14 @@ h5 { font-size: 1.05rem; font-weight: 600; }
   pointer-events: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) and (min-width: 993px) {
+  .jobs-directory-grid {
+    grid-template-columns: 330px 1fr;
+    gap: var(--space-6);
+  }
+}
+
+@media (max-width: 992px) {
   .jobs-directory-grid {
     grid-template-columns: 1fr;
   }
@@ -3057,6 +3066,7 @@ h5 { font-size: 1.05rem; font-weight: 600; }
     position: static;
     max-height: none;
     margin-bottom: 24px;
+    z-index: 1;
   }
 }
 

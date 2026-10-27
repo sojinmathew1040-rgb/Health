@@ -93,6 +93,8 @@ require_once __DIR__ . '/../includes/functions.php';
         <a href="<?php echo BASE_URL; ?>/about.php#terms">Terms of Service</a>
         <span>·</span>
         <a href="<?php echo BASE_URL; ?>/about.php#fraud">Fraud Prevention</a>
+        <span>·</span>
+        <a href="<?php echo BASE_URL; ?>/admin" style="color: #38BDF8; font-weight: 600;">Admin Console</a>
       </div>
     </div>
   </div>

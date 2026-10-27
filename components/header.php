@@ -22,9 +22,9 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
   <meta property="og:type" content="website">
 
   <!-- Core Stylesheets -->
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css?v=3.3">
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/animations.css?v=3.3">
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/responsive.css?v=3.3">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css?v=3.4">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/animations.css?v=3.4">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/responsive.css?v=3.4">
 </head>
 <body>
 
@@ -143,19 +143,17 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
             </div>
           </div>
 
-          <a href="<?php echo BASE_URL; ?>/post-job.php" class="btn btn-navy btn-sm header-post-job-btn">
-            <?php echo getIcon('briefcase', 'btn-icon-svg', 16); ?>
-            <span>Post a Job</span>
-          </a>
+          <?php if (($currentUser['role'] ?? '') === 'employer'): ?>
+            <a href="<?php echo BASE_URL; ?>/post-job.php" class="btn btn-navy btn-sm header-post-job-btn">
+              <?php echo getIcon('briefcase', 'btn-icon-svg', 16); ?>
+              <span>Post a Job</span>
+            </a>
+          <?php endif; ?>
 
         <?php else: ?>
           <!-- Guest Header Actions -->
           <a href="<?php echo BASE_URL; ?>/login.php" class="btn btn-outline btn-sm header-login-btn">Login</a>
           <a href="<?php echo BASE_URL; ?>/register.php" class="btn btn-primary btn-sm header-register-btn">Register</a>
-          <a href="<?php echo BASE_URL; ?>/post-job.php" class="btn btn-navy btn-sm header-post-job-btn">
-            <?php echo getIcon('briefcase', 'btn-icon-svg', 16); ?>
-            <span>Post a Job</span>
-          </a>
         <?php endif; ?>
 
         <!-- Mobile Menu Hamburger -->
@@ -264,11 +262,13 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
         <a href="<?php echo $isEmp ? BASE_URL . '/employer-dashboard.php' : BASE_URL . '/candidate-dashboard.php'; ?>" class="btn btn-primary" style="width: 100%;">
           <?php echo $isEmp ? 'Employer Dashboard' : 'Candidate Dashboard'; ?>
         </a>
-        <a href="<?php echo BASE_URL; ?>/logout.php" class="btn btn-outline" style="width: 100%; color: #DC2626; border-color: #FCA5A5;">Sign Out</a>
+        <?php if ($isEmp): ?>
+          <a href="<?php echo BASE_URL; ?>/post-job.php" class="btn btn-navy" style="width: 100%; margin-top: 8px;">Post a Healthcare Job</a>
+        <?php endif; ?>
+        <a href="<?php echo BASE_URL; ?>/logout.php" class="btn btn-outline" style="width: 100%; color: #DC2626; border-color: #FCA5A5; margin-top: 8px;">Sign Out</a>
       <?php else: ?>
         <a href="<?php echo BASE_URL; ?>/login.php" class="btn btn-outline" style="width: 100%;">Sign In</a>
         <a href="<?php echo BASE_URL; ?>/register.php" class="btn btn-primary" style="width: 100%;">Create Account</a>
-        <a href="<?php echo BASE_URL; ?>/post-job.php" class="btn btn-navy" style="width: 100%;">Post a Healthcare Job</a>
       <?php endif; ?>
     </div>
   </div>

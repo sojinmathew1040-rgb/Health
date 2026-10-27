@@ -67,7 +67,7 @@ function getLoggedInUser() {
 
 // Navigation structure
 $navLinks = [
-    ['title' => 'Jobs', 'url' => BASE_URL . '/jobs.php', 'badge' => '2.5k+'],
+    ['title' => 'Jobs', 'url' => BASE_URL . '/jobs.php'],
     ['title' => 'Hospitals', 'url' => BASE_URL . '/companies.php'],
     ['title' => 'Clinical Departments', 'url' => BASE_URL . '/departments.php'],
     ['title' => 'Services', 'url' => BASE_URL . '/services.php'],
