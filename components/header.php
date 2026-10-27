@@ -41,7 +41,7 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
             <circle cx="12" cy="12" r="9" stroke-width="1.8"/>
           </svg>
         </div>
-        <span>HealthJobs<span class="logo-highlight">Global</span><span class="logo-suffix">.com</span></span>
+        <span>HealthJobs<span class="logo-highlight">Global</span></span>
       </a>
 
       <!-- Desktop Navigation -->

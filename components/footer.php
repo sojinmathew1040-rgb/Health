@@ -18,7 +18,7 @@ require_once __DIR__ . '/../includes/functions.php';
           <div class="logo-symbol" style="background: var(--color-secondary);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5"><path d="M12 2v20M2 12h20"/></svg>
           </div>
-          <span>HealthJobs<span style="color: var(--color-accent);">Global</span><span class="logo-suffix">.com</span></span>
+          <span>HealthJobs<span style="color: var(--color-accent);">Global</span></span>
         </a>
         <p>
           The premier global healthcare career exchange connecting verified clinicians, nurses, allied specialists, and administrative leaders with world-class healthcare organizations.
@@ -85,7 +85,7 @@ require_once __DIR__ . '/../includes/functions.php';
     <!-- Footer Bottom Row -->
     <div class="footer-bottom">
       <div>
-        © <?php echo date('Y'); ?> HealthJobsGlobal.com. All rights reserved. Built exclusively for healthcare professionals and medical institutions.
+        © <?php echo date('Y'); ?> HealthJobsGlobal. All rights reserved. Built exclusively for healthcare professionals and medical institutions.
       </div>
       <div class="flex items-center gap-4">
         <a href="<?php echo BASE_URL; ?>/about.php#privacy">Privacy Policy</a>
