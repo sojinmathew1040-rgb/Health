@@ -6,9 +6,9 @@
 require_once __DIR__ . '/config.php';
 
 /**
- * Clean SVG Icon Provider (crisp, zero-latency vector icons)
+ * Clean SVG Icon Provider (PHP 8.4 typed)
  */
-function getIcon($name, $class = 'icon-svg', $size = 20) {
+function getIcon(string $name, string $class = 'icon-svg', int $size = 20): string {
     $icons = [
         'stethoscope' => '<svg class="'.$class.'" width="'.$size.'" height="'.$size.'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>',
         'heart-pulse' => '<svg class="'.$class.'" width="'.$size.'" height="'.$size.'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></svg>',
@@ -54,9 +54,9 @@ function getIcon($name, $class = 'icon-svg', $size = 20) {
 }
 
 /**
- * Format badge HTML
+ * Format badge HTML (PHP 8.4 explicit nullable type and null-safe htmlspecialchars)
  */
-function renderBadge($text, $type = 'default') {
+function renderBadge(?string $text, string $type = 'default'): string {
     $types = [
         'urgent' => 'badge-urgent',
         'featured' => 'badge-featured',
@@ -66,5 +66,5 @@ function renderBadge($text, $type = 'default') {
         'accent' => 'badge-accent'
     ];
     $cls = $types[$type] ?? 'badge-default';
-    return '<span class="hjg-badge ' . $cls . '">' . htmlspecialchars($text) . '</span>';
+    return '<span class="hjg-badge ' . $cls . '">' . htmlspecialchars((string)($text ?? '')) . '</span>';
 }

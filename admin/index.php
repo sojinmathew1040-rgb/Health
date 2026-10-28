@@ -56,8 +56,18 @@ if (!empty($con) && !$con->connect_error) {
         $urgentJobs = (int)($row['urgent'] ?? 0);
     }
 
-    $resH = $con->query("SELECT COUNT(*) as c FROM `hospitals`");
-    if ($resH) { $totalHospitals = (int)$resH->fetch_assoc()['c']; }
+    $verifiedHospitals = 0;
+    $pendingHospitals = 0;
+    $resH = $con->query("SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN verified = 1 THEN 1 ELSE 0 END) as verified_count,
+        SUM(CASE WHEN verified = 0 OR verified IS NULL THEN 1 ELSE 0 END) as pending_count
+        FROM `hospitals`");
+    if ($resH && $rowH = $resH->fetch_assoc()) {
+        $totalHospitals = (int)($rowH['total'] ?? 0);
+        $verifiedHospitals = (int)($rowH['verified_count'] ?? 0);
+        $pendingHospitals = (int)($rowH['pending_count'] ?? 0);
+    }
 
     $resC = $con->query("SELECT COUNT(*) as c FROM `candidates`");
     if ($resC) { $totalCandidates = (int)$resC->fetch_assoc()['c']; }
@@ -107,6 +117,32 @@ $quickActionBtn = '<button class="btn btn-primary btn-sm" data-modal-target="qui
 require_once __DIR__ . '/includes/topbar.php';
 ?>
 
+<?php if ($pendingHospitals > 0): ?>
+<!-- Pending Hospital Review Alert Banner -->
+<div style="background: linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%); border: 1.5px solid #F59E0B; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.12); flex-wrap: wrap; gap: 14px;">
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div style="width: 44px; height: 44px; border-radius: 10px; background: #D97706; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35);">
+      ⏳
+    </div>
+    <div>
+      <div style="font-weight: 700; color: #92400E; font-size: 0.98rem; display: flex; align-items: center; gap: 8px;">
+        <span><?php echo $pendingHospitals; ?> Hospital / Employer Registration<?php echo $pendingHospitals > 1 ? 's' : ''; ?> Awaiting Admin Approval</span>
+        <span class="badge" style="background: #FEE2E2; color: #991B1B; font-size: 0.72rem; padding: 2px 8px; border: 1px solid #FCA5A5;">Login Locked</span>
+      </div>
+      <div style="font-size: 0.85rem; color: #78350F; margin-top: 3px;">
+        New employer accounts from the frontend cannot log in until approved by an administrator here.
+      </div>
+    </div>
+  </div>
+  <div>
+    <a href="employers.php?filter=pending" class="btn btn-primary btn-sm" style="background: #D97706; border-color: #B45309; color: #fff; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(180, 83, 9, 0.35); padding: 8px 16px;">
+      <span>Review & Approve Now (<?php echo $pendingHospitals; ?>)</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+  </div>
+</div>
+<?php endif; ?>
+
 <!-- KPI Stats Grid -->
 <div class="stats-grid">
   <div class="stat-card">
@@ -125,9 +161,15 @@ require_once __DIR__ . '/includes/topbar.php';
   <div class="stat-card">
     <div class="stat-content">
       <div class="stat-label">Verified Hospitals</div>
-      <div class="stat-value"><?php echo $totalHospitals; ?></div>
+      <div class="stat-value"><?php echo $verifiedHospitals; ?></div>
       <div class="stat-sub">
-        <span style="color: #0284C7; font-weight: 600;">NABH & JCI</span> Quaternary networks
+        <?php if ($pendingHospitals > 0): ?>
+          <a href="employers.php?filter=pending" style="color: #D97706; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+            <span>⚠️ <?php echo $pendingHospitals; ?> Pending Approval</span>
+          </a>
+        <?php else: ?>
+          <span style="color: #0284C7; font-weight: 600;">NABH & JCI</span> Quaternary networks
+        <?php endif; ?>
       </div>
     </div>
     <div class="stat-icon emerald">

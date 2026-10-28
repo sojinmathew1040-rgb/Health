@@ -36,6 +36,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Approve Employer (Grant Login Access)
+    if ($action === 'approve_employer') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            $stmt = $con->prepare("UPDATE `hospitals` SET `verified` = 1 WHERE `id` = ?");
+            if ($stmt) {
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $stmt->close();
+                header('Location: employers.php?success=' . urlencode("Healthcare Employer approved successfully! Recruiter can now log in."));
+                exit;
+            }
+        }
+    }
+
     // Toggle Verified
     if ($action === 'toggle_verified') {
         $id = (int)($_POST['id'] ?? 0);
@@ -46,7 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bind_param("ii", $newVal, $id);
                 $stmt->execute();
                 $stmt->close();
-                header('Location: employers.php?success=' . urlencode("Hospital verification status updated."));
+                $msg = $newVal ? "Hospital approved and verified!" : "Hospital access set to unverified.";
+                header('Location: employers.php?success=' . urlencode($msg));
                 exit;
             }
         }
@@ -68,10 +84,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Filter and Statistics
+$filter = $_GET['filter'] ?? 'all';
+$whereClause = "";
+if ($filter === 'pending') {
+    $whereClause = "WHERE (h.verified = 0 OR h.verified IS NULL)";
+} elseif ($filter === 'verified') {
+    $whereClause = "WHERE h.verified = 1";
+}
+
+$totalHospCount = 0;
+$pendingHospCount = 0;
+$verifiedHospCount = 0;
+
+if (!empty($con) && !$con->connect_error) {
+    $resCounts = $con->query("SELECT 
+        COUNT(*) as total, 
+        SUM(CASE WHEN verified = 0 OR verified IS NULL THEN 1 ELSE 0 END) as pending_c,
+        SUM(CASE WHEN verified = 1 THEN 1 ELSE 0 END) as verified_c 
+        FROM `hospitals`");
+    if ($resCounts && $cRow = $resCounts->fetch_assoc()) {
+        $totalHospCount = (int)$cRow['total'];
+        $pendingHospCount = (int)($cRow['pending_c'] ?? 0);
+        $verifiedHospCount = (int)($cRow['verified_c'] ?? 0);
+    }
+}
+
 // Fetch Hospitals
 $hospitals = [];
 if (!empty($con) && !$con->connect_error) {
-    $res = $con->query("SELECT h.*, (SELECT COUNT(*) FROM jobs WHERE hospital_id = h.id OR company = h.name) as live_openings FROM `hospitals` h ORDER BY h.id ASC");
+    $query = "SELECT h.*, (SELECT COUNT(*) FROM jobs WHERE hospital_id = h.id OR company = h.name) as live_openings 
+              FROM `hospitals` h 
+              {$whereClause} 
+              ORDER BY (CASE WHEN h.verified = 0 OR h.verified IS NULL THEN 0 ELSE 1 END) ASC, h.id DESC";
+    $res = $con->query($query);
     if ($res) {
         while ($r = $res->fetch_assoc()) {
             $hospitals[] = $r;
@@ -98,6 +144,19 @@ require_once __DIR__ . '/includes/topbar.php';
   </button>
 </div>
 
+<!-- Filter Tabs (All / Pending Approval / Verified) -->
+<div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+  <a href="employers.php?filter=all" class="btn btn-sm <?php echo $filter === 'all' ? 'btn-primary' : 'btn-secondary'; ?>" style="border-radius: var(--radius-pill); padding: 7px 16px;">
+    All Hospitals (<?php echo $totalHospCount; ?>)
+  </a>
+  <a href="employers.php?filter=pending" class="btn btn-sm" style="border-radius: var(--radius-pill); padding: 7px 16px; <?php echo $filter === 'pending' ? 'background: #D97706; color: #FFF; font-weight: 700;' : ($pendingHospCount > 0 ? 'background: #FEF3C7; color: #92400E; border: 1.5px solid #FCD34D; font-weight: 700;' : 'background: #F1F5F9; color: var(--text-muted);'); ?>">
+    ⏳ Pending Admin Approval (<?php echo $pendingHospCount; ?>)
+  </a>
+  <a href="employers.php?filter=verified" class="btn btn-sm <?php echo $filter === 'verified' ? 'btn-primary' : 'btn-secondary'; ?>" style="border-radius: var(--radius-pill); padding: 7px 16px;">
+    ✓ Verified Partners (<?php echo $verifiedHospCount; ?>)
+  </a>
+</div>
+
 <div class="card">
   <div class="card-header">
     <h3 class="card-title">Hospital Networks & Medical Centers (<?php echo count($hospitals); ?> Facilities)</h3>
@@ -118,19 +177,26 @@ require_once __DIR__ . '/includes/topbar.php';
       </thead>
       <tbody>
         <?php if (empty($hospitals)): ?>
-          <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">No hospitals registered yet.</td></tr>
+          <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">No hospitals match this filter.</td></tr>
         <?php else: ?>
-          <?php foreach ($hospitals as $hosp): ?>
-            <tr>
+          <?php foreach ($hospitals as $hosp): 
+            $isPending = empty($hosp['verified']) || $hosp['verified'] == 0;
+          ?>
+            <tr style="<?php echo $isPending ? 'background: #FFFDF5;' : ''; ?>">
               <td>
                 <div class="table-hospital-cell">
-                  <div class="hospital-avatar">
+                  <div class="hospital-avatar" style="<?php echo $isPending ? 'background: #D97706;' : ''; ?>">
                     <?php echo htmlspecialchars($hosp['logo_text'] ?: substr($hosp['name'], 0, 3)); ?>
                   </div>
                   <div>
-                    <span class="job-cell-title"><?php echo htmlspecialchars($hosp['name']); ?></span>
+                    <span class="job-cell-title">
+                      <?php echo htmlspecialchars($hosp['name']); ?>
+                      <?php if ($isPending): ?>
+                        <span style="font-size: 0.7rem; background: #FEF3C7; color: #92400E; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">NEW REGISTRATION</span>
+                      <?php endif; ?>
+                    </span>
                     <span class="job-cell-sub">
-                      ★ <?php echo htmlspecialchars($hosp['rating'] ?? '4.8'); ?> Rating
+                      <?php echo !empty($hosp['admin_name']) ? ('Admin: ' . htmlspecialchars($hosp['admin_name'])) : ('★ ' . htmlspecialchars($hosp['rating'] ?? '4.8') . ' Rating'); ?>
                     </span>
                   </div>
                 </div>
@@ -141,7 +207,7 @@ require_once __DIR__ . '/includes/topbar.php';
               </td>
               <td><?php echo htmlspecialchars($hosp['location']); ?></td>
               <td>
-                <div style="font-size: 0.82rem;"><?php echo htmlspecialchars($hosp['contact_email'] ?: 'N/A'); ?></div>
+                <div style="font-size: 0.82rem;"><?php echo htmlspecialchars($hosp['contact_email'] ?: ($hosp['admin_email'] ?? 'N/A')); ?></div>
                 <?php if (!empty($hosp['website'])): ?>
                   <a href="<?php echo htmlspecialchars($hosp['website']); ?>" target="_blank" style="font-size: 0.74rem; color: var(--primary); text-decoration: underline;">
                     Visit Website &nearr;
@@ -154,17 +220,34 @@ require_once __DIR__ . '/includes/topbar.php';
                 </span>
               </td>
               <td>
-                <form method="POST" action="employers.php" style="display:inline;">
-                  <input type="hidden" name="action" value="toggle_verified">
-                  <input type="hidden" name="id" value="<?php echo $hosp['id']; ?>">
-                  <input type="hidden" name="verified" value="<?php echo $hosp['verified'] ? 0 : 1; ?>">
-                  <button type="submit" class="badge <?php echo $hosp['verified'] ? 'badge-verified' : 'badge-pending'; ?>" style="border:none; cursor:pointer;" title="Click to toggle verification">
-                    <?php echo $hosp['verified'] ? '✓ Verified Partner' : '○ Unverified'; ?>
-                  </button>
-                </form>
+                <?php if ($isPending): ?>
+                  <span class="badge" style="background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; font-weight: 700;">
+                    ⏳ Pending Approval
+                  </span>
+                <?php else: ?>
+                  <form method="POST" action="employers.php" style="display:inline;">
+                    <input type="hidden" name="action" value="toggle_verified">
+                    <input type="hidden" name="id" value="<?php echo $hosp['id']; ?>">
+                    <input type="hidden" name="verified" value="0">
+                    <button type="submit" class="badge badge-verified" style="border:none; cursor:pointer;" title="Click to unverify">
+                      ✓ Verified Partner
+                    </button>
+                  </form>
+                <?php endif; ?>
               </td>
               <td>
                 <div class="table-actions">
+                  <?php if ($isPending): ?>
+                    <form method="POST" action="employers.php" style="display:inline;">
+                      <input type="hidden" name="action" value="approve_employer">
+                      <input type="hidden" name="id" value="<?php echo $hosp['id']; ?>">
+                      <button type="submit" class="btn btn-primary btn-sm" style="background: #059669; border-color: #047857; font-size: 0.78rem; padding: 5px 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" title="Approve and grant login access">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Approve & Grant Login</span>
+                      </button>
+                    </form>
+                  <?php endif; ?>
+
                   <a href="../company-details.php?slug=<?php echo htmlspecialchars($hosp['slug']); ?>" target="_blank" class="btn btn-secondary btn-sm" title="View Public Page">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </a>

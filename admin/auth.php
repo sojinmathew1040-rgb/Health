@@ -8,11 +8,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../includes/db.php';
 
-function isAdminLoggedIn() {
+function isAdminLoggedIn(): bool {
     return !empty($_SESSION['admin_user']);
 }
 
-function getLoggedInAdmin() {
+function getLoggedInAdmin(): array {
     return $_SESSION['admin_user'] ?? [
         'id' => 1,
         'username' => 'admin',
@@ -22,10 +22,11 @@ function getLoggedInAdmin() {
     ];
 }
 
-function requireAdminAuth() {
+function requireAdminAuth(): void {
     if (!isAdminLoggedIn()) {
         $loginUrl = 'login.php';
-        if (basename($_SERVER['PHP_SELF']) !== 'login.php') {
+        $currentSelf = (string)($_SERVER['PHP_SELF'] ?? '');
+        if (basename($currentSelf) !== 'login.php') {
             header("Location: {$loginUrl}");
             exit;
         }

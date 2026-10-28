@@ -4,35 +4,45 @@
  * Single centralized database connection for entire application
  */
 
-//local server
-
+// MySQL connection settings
 $servername = "localhost";
 $username = "root";
-$password ="";
+$password = "";
 $dbname = "healthjobs";
 
+// PHP 8.1 - 8.4 compatibility: Prevent uncaught mysqli_sql_exception on initial connection probe
+mysqli_report(MYSQLI_REPORT_OFF);
 
-// Create connection
-$con = @new mysqli($servername, $username, $password, $dbname);
+// Create connection with fallback database auto-creation
+try {
+    $con = @new mysqli($servername, $username, $password, $dbname);
+} catch (Throwable $e) {
+    $con = false;
+}
 
 // If database does not exist, automatically create it and reconnect
-if ($con->connect_error) {
-    $rootConn = @new mysqli($servername, $username, $password);
-    if ($rootConn && !$rootConn->connect_error) {
-        $rootConn->query("CREATE DATABASE IF NOT EXISTS `{$dbname}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        $rootConn->close();
-        $con = @new mysqli($servername, $username, $password, $dbname);
+if (!$con || $con->connect_error) {
+    try {
+        $rootConn = @new mysqli($servername, $username, $password);
+        if ($rootConn && !$rootConn->connect_error) {
+            $rootConn->query("CREATE DATABASE IF NOT EXISTS `{$dbname}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $rootConn->close();
+            $con = @new mysqli($servername, $username, $password, $dbname);
+        }
+    } catch (Throwable $e) {
+        // Keep $con as is
     }
 }
 
-if (!$con->connect_error) {
-    $con->set_charset("utf8");
+if ($con && !$con->connect_error) {
+    $con->set_charset("utf8mb4");
 }
 
 /**
  * Initialize Schema and Seed Data if tables are missing
+ * (PHP 8.4 typed and explicitly nullable parameter)
  */
-function initAdminDatabase($con) {
+function initAdminDatabase(?mysqli $con): bool {
     if (!$con || $con->connect_error) {
         return false;
     }
@@ -73,6 +83,9 @@ function initAdminDatabase($con) {
         `rating` VARCHAR(10) DEFAULT '4.8',
         `verified` TINYINT(1) DEFAULT 1,
         `contact_email` VARCHAR(191) DEFAULT '',
+        `admin_email` VARCHAR(191) DEFAULT '',
+        `admin_name` VARCHAR(150) DEFAULT '',
+        `password` VARCHAR(255) DEFAULT '',
         `phone` VARCHAR(50) DEFAULT '',
         `website` VARCHAR(255) DEFAULT '',
         `overview` TEXT,
@@ -108,6 +121,7 @@ function initAdminDatabase($con) {
         `id` INT AUTO_INCREMENT PRIMARY KEY,
         `name` VARCHAR(255) NOT NULL,
         `email` VARCHAR(191) NOT NULL UNIQUE,
+        `password` VARCHAR(255) DEFAULT '',
         `phone` VARCHAR(50) DEFAULT '',
         `degree` VARCHAR(150) NOT NULL,
         `specialty` VARCHAR(150) NOT NULL,
@@ -250,4 +264,29 @@ function initAdminDatabase($con) {
 if (!$con->connect_error) {
     initAdminDatabase($con);
     @$con->query("UPDATE `jobs` SET `status` = 'Active' WHERE `status` = '' OR `status` IS NULL");
+
+    // Auto-migrate missing columns for unified authentication
+    $colCheckC = @$con->query("SHOW COLUMNS FROM `candidates` LIKE 'password'");
+    if ($colCheckC && $colCheckC->num_rows === 0) {
+        @$con->query("ALTER TABLE `candidates` ADD `password` VARCHAR(255) DEFAULT '' AFTER `email`");
+    }
+
+    $colCheckH1 = @$con->query("SHOW COLUMNS FROM `hospitals` LIKE 'password'");
+    if ($colCheckH1 && $colCheckH1->num_rows === 0) {
+        @$con->query("ALTER TABLE `hospitals` ADD `password` VARCHAR(255) DEFAULT '' AFTER `contact_email`");
+    }
+    $colCheckH2 = @$con->query("SHOW COLUMNS FROM `hospitals` LIKE 'admin_email'");
+    if ($colCheckH2 && $colCheckH2->num_rows === 0) {
+        @$con->query("ALTER TABLE `hospitals` ADD `admin_email` VARCHAR(191) DEFAULT '' AFTER `contact_email`");
+    }
+    $colCheckH3 = @$con->query("SHOW COLUMNS FROM `hospitals` LIKE 'admin_name'");
+    if ($colCheckH3 && $colCheckH3->num_rows === 0) {
+        @$con->query("ALTER TABLE `hospitals` ADD `admin_name` VARCHAR(150) DEFAULT '' AFTER `admin_email`");
+    }
+
+    // Ensure default demo accounts have hashed password 'password123'
+    $defaultPassHash = password_hash('password123', PASSWORD_DEFAULT);
+    @$con->query("UPDATE `candidates` SET `password` = '{$defaultPassHash}' WHERE `email` = 'dr.arjun@hospital.com' AND (`password` = '' OR `password` IS NULL)");
+    @$con->query("UPDATE `hospitals` SET `password` = '{$defaultPassHash}' WHERE `contact_email` = 'careers@astermedcity.com' AND (`password` = '' OR `password` IS NULL)");
 }
+

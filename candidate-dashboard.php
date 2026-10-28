@@ -10,20 +10,30 @@ require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/components/header.php';
 ?>
 
+<?php
+$currentUser = getLoggedInUser();
+$displayName = $currentUser['name'] ?? 'Dr. Arjun Menon';
+$displayInitials = $currentUser['initials'] ?? 'AM';
+$displayTitle = !empty($currentUser['title']) ? $currentUser['title'] : (!empty($currentUser['degree']) ? $currentUser['degree'] : 'Senior Consultant – Interventional Cardiology');
+if (!empty($currentUser['council'])) {
+    $displayTitle .= ' · Reg: ' . $currentUser['council'];
+}
+?>
+
 <div style="background: #FFFFFF; border-bottom: 1px solid var(--color-border); padding: 28px 0;">
   <div class="container">
     <div class="flex-between items-center" style="flex-wrap: wrap; gap: 16px;">
       <div class="flex items-center gap-4">
         <div class="doctor-avatar-wrap" style="width: 64px; height: 64px; font-size: 1.2rem;">
-          <span>AM</span>
+          <span><?php echo htmlspecialchars($displayInitials); ?></span>
         </div>
         <div>
           <div class="flex items-center gap-2" style="margin-bottom: 2px;">
-            <h1 style="font-size: 1.65rem; color: var(--color-primary); margin: 0;">Welcome, Dr. Arjun Menon</h1>
+            <h1 style="font-size: 1.65rem; color: var(--color-primary); margin: 0;">Welcome, <?php echo htmlspecialchars($displayName); ?></h1>
             <span class="hjg-badge badge-verified"><?php echo getIcon('shield-check', '', 14); ?> Council Verified</span>
           </div>
           <div style="color: var(--color-text-secondary); font-size: 0.9rem;">
-            Senior Consultant – Interventional Cardiology · TCMC Reg: 48921
+            <?php echo htmlspecialchars($displayTitle); ?>
           </div>
         </div>
       </div>

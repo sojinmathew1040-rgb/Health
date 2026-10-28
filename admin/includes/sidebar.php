@@ -17,8 +17,16 @@ if (!empty($con) && !$con->connect_error) {
     $resA = $con->query("SELECT COUNT(*) as c FROM `applications`");
     if ($resA) { $appCount = $resA->fetch_assoc()['c']; }
 
-    $resH = $con->query("SELECT COUNT(*) as c FROM `hospitals`");
-    if ($resH) { $hospCount = $resH->fetch_assoc()['c']; }
+    $hospCount = 0;
+    $pendingHospCount = 0;
+    $resH = $con->query("SELECT 
+        COUNT(*) as c, 
+        SUM(CASE WHEN verified = 0 OR verified IS NULL THEN 1 ELSE 0 END) as p 
+        FROM `hospitals`");
+    if ($resH && $hRow = $resH->fetch_assoc()) { 
+        $hospCount = (int)$hRow['c']; 
+        $pendingHospCount = (int)($hRow['p'] ?? 0);
+    }
 }
 ?>
 <!-- Admin Sidebar -->
@@ -65,7 +73,13 @@ if (!empty($con) && !$con->connect_error) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
             </span>
             <span>Hospitals & Networks</span>
-            <span class="nav-count"><?php echo $hospCount; ?></span>
+            <?php if ($pendingHospCount > 0): ?>
+              <span class="nav-count" style="background: #D97706; color: #FFF; font-weight: 700;" title="<?php echo $pendingHospCount; ?> awaiting approval">
+                <?php echo $pendingHospCount; ?> pending
+              </span>
+            <?php else: ?>
+              <span class="nav-count"><?php echo $hospCount; ?></span>
+            <?php endif; ?>
           </a>
         </li>
         <li class="nav-item <?php echo ($currentAdminPage === 'candidates.php') ? 'active' : ''; ?>">

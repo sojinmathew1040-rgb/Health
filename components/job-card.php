@@ -3,18 +3,18 @@
  * HealthJobsGlobal.com - Reusable Job Card Component
  * Requires $job array in scope
  */
-if (!isset($job)) return;
-$safeTitle = htmlspecialchars($job['title']);
-$safeCompany = htmlspecialchars($job['company']);
-$jobUrl = BASE_URL . '/job-details.php?id=' . $job['id'];
+if (!isset($job) || !is_array($job)) return;
+$safeTitle = htmlspecialchars((string)($job['title'] ?? ''));
+$safeCompany = htmlspecialchars((string)($job['company'] ?? ''));
+$jobUrl = BASE_URL . '/job-details.php?id=' . (int)($job['id'] ?? 0);
 ?>
-<div class="job-card" data-id="<?php echo $job['id']; ?>">
+<div class="job-card" data-id="<?php echo (int)($job['id'] ?? 0); ?>">
   
   <!-- Header: Company & Bookmark -->
   <div class="job-card-header">
     <div class="job-company-lockup">
       <div class="company-logo-avatar">
-        <?php echo strtoupper(substr($job['company'], 0, 2)); ?>
+        <?php echo strtoupper(substr((string)($job['company'] ?? 'HJ'), 0, 2)); ?>
       </div>
       <div>
         <div class="job-company-name">
@@ -25,7 +25,7 @@ $jobUrl = BASE_URL . '/job-details.php?id=' . $job['id'];
         </div>
         <div class="job-company-location">
           <?php echo getIcon('map-pin', '', 14); ?>
-          <span><?php echo htmlspecialchars($job['location']); ?></span>
+          <span><?php echo htmlspecialchars((string)($job['location'] ?? '')); ?></span>
         </div>
       </div>
     </div>
@@ -51,30 +51,30 @@ $jobUrl = BASE_URL . '/job-details.php?id=' . $job['id'];
   <div class="job-specs-pills">
     <div class="spec-pill">
       <?php echo getIcon('briefcase', '', 14); ?>
-      <span><?php echo htmlspecialchars($job['experience']); ?></span>
+      <span><?php echo htmlspecialchars((string)($job['experience'] ?? '')); ?></span>
     </div>
     <div class="spec-pill">
       <?php echo getIcon('clock', '', 14); ?>
-      <span><?php echo htmlspecialchars($job['employment_type']); ?></span>
+      <span><?php echo htmlspecialchars((string)($job['employment_type'] ?? '')); ?></span>
     </div>
     <?php if (!empty($job['council_req'])): ?>
       <div class="spec-pill council-pill" title="Council Registration Requirement">
         <?php echo getIcon('shield-check', '', 14); ?>
-        <span><?php echo htmlspecialchars($job['council_req']); ?></span>
+        <span><?php echo htmlspecialchars((string)$job['council_req']); ?></span>
       </div>
     <?php endif; ?>
   </div>
 
   <!-- Excerpt -->
   <p class="job-description-excerpt">
-    <?php echo htmlspecialchars($job['description']); ?>
+    <?php echo htmlspecialchars((string)($job['description'] ?? '')); ?>
   </p>
 
   <!-- Tags -->
-  <?php if (!empty($job['tags'])): ?>
+  <?php if (!empty($job['tags']) && is_array($job['tags'])): ?>
     <div class="job-skills-tags">
       <?php foreach ($job['tags'] as $tag): ?>
-        <span class="skill-tag"><?php echo htmlspecialchars($tag); ?></span>
+        <span class="skill-tag"><?php echo htmlspecialchars((string)$tag); ?></span>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
@@ -82,8 +82,8 @@ $jobUrl = BASE_URL . '/job-details.php?id=' . $job['id'];
   <!-- Card Footer: Salary, Date & Quick Apply -->
   <div class="job-card-bottom">
     <div>
-      <div class="job-salary-block"><?php echo htmlspecialchars($job['salary']); ?></div>
-      <div class="job-posted-time">Posted <?php echo htmlspecialchars($job['posted']); ?></div>
+      <div class="job-salary-block"><?php echo htmlspecialchars((string)($job['salary'] ?? '')); ?></div>
+      <div class="job-posted-time">Posted <?php echo htmlspecialchars((string)($job['posted'] ?? '')); ?></div>
     </div>
 
     <div class="flex items-center gap-2">

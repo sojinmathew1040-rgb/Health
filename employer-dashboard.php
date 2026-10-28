@@ -10,20 +10,28 @@ require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/components/header.php';
 ?>
 
+<?php
+$currentUser = getLoggedInUser();
+$displayHosp = $currentUser['hospital'] ?? ($currentUser['name'] ?? 'Aster Medcity & Aster Hospitals');
+$displayLogo = !empty($currentUser['initials']) ? $currentUser['initials'] : 'ASTER';
+$displayBadge = $currentUser['accreditation'] ?? 'Quaternary Partner';
+$displaySubtitle = !empty($currentUser['name']) && $currentUser['name'] !== $displayHosp ? ($currentUser['name'] . ' · ' . ($currentUser['title'] ?? 'Recruitment Cell')) : 'Hospital Recruitment Cell · JCI & NABH Accredited';
+?>
+
 <div style="background: #FFFFFF; border-bottom: 1px solid var(--color-border); padding: 28px 0;">
   <div class="container">
     <div class="flex-between items-center" style="flex-wrap: wrap; gap: 16px;">
       <div class="flex items-center gap-4">
         <div class="company-logo-avatar" style="width: 64px; height: 64px; font-size: 1.1rem; background: var(--color-secondary);">
-          ASTER
+          <?php echo htmlspecialchars($displayLogo); ?>
         </div>
         <div>
           <div class="flex items-center gap-2" style="margin-bottom: 2px;">
-            <h1 style="font-size: 1.65rem; color: var(--color-primary); margin: 0;">Aster Medcity & Aster Hospitals</h1>
-            <span class="hjg-badge badge-gold">Quaternary Partner</span>
+            <h1 style="font-size: 1.65rem; color: var(--color-primary); margin: 0;"><?php echo htmlspecialchars($displayHosp); ?></h1>
+            <span class="hjg-badge badge-gold"><?php echo htmlspecialchars($displayBadge); ?></span>
           </div>
           <div style="color: var(--color-text-secondary); font-size: 0.9rem;">
-            Hospital Recruitment Cell · JCI & NABH Accredited · Kochi & Dubai
+            <?php echo htmlspecialchars($displaySubtitle); ?>
           </div>
         </div>
       </div>

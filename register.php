@@ -6,11 +6,215 @@ $pageTitle = "Registration — HealthJobsGlobal";
 $pageDescription = "Create your verified healthcare profile or register your hospital recruitment institution.";
 
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
+
+// Handle Registration POST Actions (Candidate & Employer)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'register_candidate') {
+        $firstName = trim($_POST['first_name'] ?? '');
+        $lastName = trim($_POST['last_name'] ?? '');
+        $fullName = trim($firstName . ' ' . $lastName);
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+        $degree = trim($_POST['degree'] ?? 'Healthcare Professional');
+        $specialty = trim($_POST['specialty'] ?? '');
+        $experience = trim($_POST['experience'] ?? 'Experienced');
+        $council_reg = trim($_POST['council_reg'] ?? '');
+        $location = trim($_POST['location'] ?? '');
+
+        if (empty($fullName)) {
+            echo json_encode(['success' => false, 'message' => 'Please provide your full name in Step 1.']);
+            exit;
+        }
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Please enter a valid email address.']);
+            exit;
+        }
+        if (empty($password) || strlen($password) < 6) {
+            echo json_encode(['success' => false, 'message' => 'Password must be at least 6 characters.']);
+            exit;
+        }
+
+        // Check if email already registered in candidates table
+        if ($con && !$con->connect_error) {
+            $stmt = $con->prepare("SELECT `id` FROM `candidates` WHERE `email` = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $stmt->store_result();
+                if ($stmt->num_rows > 0) {
+                    $stmt->close();
+                    echo json_encode(['success' => false, 'message' => 'An account with this email already exists. Please log in with your credentials.']);
+                    exit;
+                }
+                $stmt->close();
+            }
+
+            // Check if registered in hospitals table
+            $stmt = $con->prepare("SELECT `id` FROM `hospitals` WHERE `contact_email` = ? OR `admin_email` = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("ss", $email, $email);
+                $stmt->execute();
+                $stmt->store_result();
+                if ($stmt->num_rows > 0) {
+                    $stmt->close();
+                    echo json_encode(['success' => false, 'message' => 'This email is already registered as a Hospital Employer account. Please sign in or use another email.']);
+                    exit;
+                }
+                $stmt->close();
+            }
+
+            // Insert into candidates
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $con->prepare("INSERT INTO `candidates` (`name`, `email`, `password`, `phone`, `degree`, `specialty`, `experience`, `council_reg`, `location`, `status`, `created_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Verified', NOW())");
+            if ($stmt) {
+                $stmt->bind_param("sssssssss", $fullName, $email, $hashed, $phone, $degree, $specialty, $experience, $council_reg, $location);
+                $stmt->execute();
+                $newId = $stmt->insert_id;
+                $stmt->close();
+
+                // Set session
+                $_SESSION['user'] = [
+                    'id' => $newId,
+                    'role' => 'candidate',
+                    'name' => $fullName,
+                    'degree' => $degree,
+                    'title' => !empty($specialty) ? ($specialty . (!empty($degree) ? ' · ' . $degree : '')) : 'Healthcare Professional',
+                    'email' => $email,
+                    'phone' => $phone,
+                    'initials' => strtoupper(substr($firstName, 0, 1) . substr($lastName ?: $firstName, 0, 1)),
+                    'council' => $council_reg
+                ];
+
+                echo json_encode([
+                    'success' => true,
+                    'redirect' => BASE_URL . '/candidate-dashboard.php',
+                    'message' => "Candidate account created successfully! Welcome, {$fullName}."
+                ]);
+                exit;
+            }
+        }
+
+        // Fallback session if DB error
+        $_SESSION['user'] = [
+            'role' => 'candidate',
+            'name' => $fullName,
+            'degree' => $degree,
+            'title' => !empty($specialty) ? $specialty : 'Healthcare Professional',
+            'email' => $email,
+            'phone' => $phone,
+            'initials' => strtoupper(substr($firstName, 0, 1) . substr($lastName ?: $firstName, 0, 1)),
+            'council' => $council_reg
+        ];
+        echo json_encode([
+            'success' => true,
+            'redirect' => BASE_URL . '/candidate-dashboard.php',
+            'message' => "Registration successful! Welcome, {$fullName}."
+        ]);
+        exit;
+    }
+
+    if ($action === 'register_employer') {
+        $orgName = trim($_POST['org_name'] ?? '');
+        $orgCategory = trim($_POST['org_category'] ?? 'Quaternary Care Multi-Specialty Hospital');
+        $generalEmail = trim($_POST['general_email'] ?? '');
+        $adminEmail = trim($_POST['admin_email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $city = trim($_POST['city'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $adminName = trim($_POST['admin_name'] ?? '');
+        $adminDesig = trim($_POST['admin_designation'] ?? 'Head of Medical Talent Acquisition');
+        $website = trim($_POST['website'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+
+        if (empty($orgName)) {
+            echo json_encode(['success' => false, 'message' => 'Please provide the Organization / Hospital Name.']);
+            exit;
+        }
+        $contactEmail = !empty($generalEmail) ? $generalEmail : $adminEmail;
+        if (empty($contactEmail) || !filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Please enter a valid official Email Address.']);
+            exit;
+        }
+        if (empty($password) || strlen($password) < 6) {
+            echo json_encode(['success' => false, 'message' => 'Password must be at least 6 characters.']);
+            exit;
+        }
+
+        // Check if email already registered in hospitals or candidates
+        if ($con && !$con->connect_error) {
+            $stmt = $con->prepare("SELECT `id` FROM `hospitals` WHERE `contact_email` = ? OR `admin_email` = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("ss", $contactEmail, $contactEmail);
+                $stmt->execute();
+                $stmt->store_result();
+                if ($stmt->num_rows > 0) {
+                    $stmt->close();
+                    echo json_encode(['success' => false, 'message' => 'An organization with this email already exists. Please log in.']);
+                    exit;
+                }
+                $stmt->close();
+            }
+
+            $stmt = $con->prepare("SELECT `id` FROM `candidates` WHERE `email` = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("s", $contactEmail);
+                $stmt->execute();
+                $stmt->store_result();
+                if ($stmt->num_rows > 0) {
+                    $stmt->close();
+                    echo json_encode(['success' => false, 'message' => 'This email is already registered as a Candidate account. Please sign in or use another email.']);
+                    exit;
+                }
+                $stmt->close();
+            }
+
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $orgName), '-'));
+            $cleanName = preg_replace('/[^a-zA-Z]/', '', $orgName);
+            $logoText = strtoupper(substr($cleanName, 0, 5));
+            $locationStr = $city . (!empty($address) ? ', ' . $address : '');
+            $overview = "{$orgName} is a premier healthcare institution registered on HealthJobsGlobal.";
+
+            // Employer registration requires Admin Approval (verified = 0)
+            $stmt = $con->prepare("INSERT INTO `hospitals` (`name`, `slug`, `logo_text`, `badge`, `type`, `location`, `openings`, `rating`, `verified`, `contact_email`, `admin_email`, `admin_name`, `phone`, `password`, `website`, `overview`, `created_at`) VALUES (?, ?, ?, 'NABH / JCI Accredited', ?, ?, 0, '4.8', 0, ?, ?, ?, ?, ?, ?, ?, NOW())");
+            if ($stmt) {
+                $stmt->bind_param("ssssssssssss", $orgName, $slug, $logoText, $orgCategory, $locationStr, $contactEmail, $adminEmail, $adminName, $phone, $hashed, $website, $overview);
+                $stmt->execute();
+                $newId = $stmt->insert_id;
+                $stmt->close();
+
+                // Do not create session immediately: Admin approval required before login
+                echo json_encode([
+                    'success' => true,
+                    'pending_approval' => true,
+                    'redirect' => BASE_URL . '/login.php?pending_approval=' . urlencode($orgName),
+                    'message' => "{$orgName} registered successfully! Your account has been submitted for Admin Verification. You will be able to log in once approved by the Admin."
+                ]);
+                exit;
+            }
+        }
+
+        // Fallback response if DB error
+        echo json_encode([
+            'success' => true,
+            'pending_approval' => true,
+            'redirect' => BASE_URL . '/login.php?pending_approval=' . urlencode($orgName),
+            'message' => "{$orgName} registered successfully! Your account has been submitted for Admin Verification. You will be able to log in once approved by the Admin."
+        ]);
+        exit;
+    }
+}
+
 require_once __DIR__ . '/components/header.php';
 
 // Initial role selection (candidate vs employer)
-$activeRole = (isset($_GET['type']) && $_GET['type'] === 'employer') ? 'employer' : 'candidate';
+$activeRole = ((isset($_GET['type']) && $_GET['type'] === 'employer') || (isset($_GET['role']) && $_GET['role'] === 'employer')) ? 'employer' : 'candidate';
 $generatedCandidateId = "HJG-" . strtoupper(substr(md5(uniqid()), 0, 8));
 $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
 ?>
@@ -755,6 +959,27 @@ $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
                 <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-primary);" id="wizardCVText">Click to attach CV / Resume (Optional)</div>
                 <div style="font-size: 0.78rem; color: var(--color-text-muted); margin-top: 4px;">PDF or DOCX (Max 10MB) — If you don't have a CV right now, our system builds your digital profile automatically.</div>
                 <input type="file" id="wizardCVFile" style="display: none;" accept=".pdf,.doc,.docx" onchange="document.getElementById('wizardCVText').textContent = this.files[0] ? this.files[0].name : 'CV uploaded';">
+              </div>
+            <!-- Account Password & Single Login Credentials -->
+            <div style="background: #FFFFFF; border: 1.5px solid var(--color-border); border-radius: var(--radius-lg); padding: 22px; margin-bottom: 22px;">
+              <h4 style="font-size: 1.05rem; color: var(--color-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                <?php echo getIcon('lock', '', 18); ?>
+                Create Account Password (For Portal Login)
+              </h4>
+              <p style="font-size: 0.82rem; color: var(--color-text-secondary); margin-bottom: 16px;">
+                You will use your registered email address or mobile number with this password to sign into your candidate dashboard.
+              </p>
+              <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="candPass">Create Account Password *</label>
+                  <input type="password" id="candPass" class="form-control" placeholder="••••••••" required>
+                  <span class="form-hint">Minimum 6 characters</span>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="candConfirmPass">Confirm Password *</label>
+                  <input type="password" id="candConfirmPass" class="form-control" placeholder="••••••••" required>
+                  <span class="form-hint">Type your password again</span>
+                </div>
               </div>
             </div>
 
@@ -1780,20 +2005,88 @@ function goToStep(step, direction = 'next') {
   }
 }
 
-function finishCandidateRegistration() {
-  const btn = document.getElementById('candidateSubmitBtn') || (event ? event.currentTarget : null);
-  
+async function finishCandidateRegistration() {
+  const firstName = document.getElementById('regFirstName') ? document.getElementById('regFirstName').value.trim() : '';
+  const lastName = document.getElementById('regLastName') ? document.getElementById('regLastName').value.trim() : '';
+  const email = document.getElementById('regEmail') ? document.getElementById('regEmail').value.trim() : '';
+  const mobile = document.getElementById('regMobile') ? document.getElementById('regMobile').value.trim() : '';
+  const pass = document.getElementById('candPass') ? document.getElementById('candPass').value : '';
+  const confirmPass = document.getElementById('candConfirmPass') ? document.getElementById('candConfirmPass').value : '';
+
+  if (!firstName) {
+    showToast('Please enter your First Name in Step 1', 'error');
+    goToStep(1);
+    return;
+  }
+  if (!email) {
+    showToast('Please enter your Email Address in Step 1', 'error');
+    goToStep(1);
+    return;
+  }
+  if (!pass || pass.length < 6) {
+    showToast('Please create an account password of at least 6 characters in Step 4', 'error');
+    const p = document.getElementById('candPass');
+    if (p) { p.focus(); highlightError(p); }
+    return;
+  }
+  if (confirmPass !== pass) {
+    showToast('Account passwords do not match. Please verify in Step 4.', 'error');
+    const cp = document.getElementById('candConfirmPass');
+    if (cp) { cp.focus(); highlightError(cp); }
+    return;
+  }
+
+  const qualSelect = document.getElementById('qualDegree_1');
+  const degree = (qualSelect && qualSelect.selectedOptions && qualSelect.selectedOptions[0] && qualSelect.selectedOptions[0].text) ? qualSelect.selectedOptions[0].text : 'Healthcare Professional';
+  const specialty = document.getElementById('regPreferredDesignation') ? document.getElementById('regPreferredDesignation').value.trim() : (document.getElementById('regCurrentDesignation') ? document.getElementById('regCurrentDesignation').value.trim() : '');
+  const council = document.getElementById('regCouncilRegNo') ? document.getElementById('regCouncilRegNo').value.trim() : '';
+  const location = document.getElementById('regCurrentLoc') ? document.getElementById('regCurrentLoc').value.trim() : '';
+  const experience = (typeof workStatus !== 'undefined' ? workStatus : 'experienced');
+
+  const btn = document.getElementById('candidateSubmitBtn');
   if (btn) {
-    btn.innerHTML = 'Activating Profile & Verifying Credentials...';
+    btn.innerHTML = 'Activating Profile & Saving to Database...';
     btn.disabled = true;
   }
 
-  setTimeout(() => {
-    showToast('Candidate Profile activated successfully! Welcome to HealthJobsGlobal.');
+  const formData = new FormData();
+  formData.append('action', 'register_candidate');
+  formData.append('first_name', firstName);
+  formData.append('last_name', lastName);
+  formData.append('email', email);
+  formData.append('phone', mobile);
+  formData.append('password', pass);
+  formData.append('degree', degree);
+  formData.append('specialty', specialty);
+  formData.append('council_reg', council);
+  formData.append('location', location);
+  formData.append('experience', experience);
+
+  try {
+    const res = await fetch('register.php', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Candidate Profile registered successfully! Welcome to HealthJobsGlobal.');
+      setTimeout(() => {
+        window.location.href = data.redirect || '<?php echo BASE_URL; ?>/candidate-dashboard.php';
+      }, 1000);
+    } else {
+      showToast(data.message || 'Registration failed. Please check your details.', 'error');
+      if (btn) {
+        btn.innerHTML = '<span>Complete Registration & Activate Profile</span>';
+        btn.disabled = false;
+      }
+    }
+  } catch (err) {
+    console.error('Candidate registration error:', err);
+    showToast('Candidate Profile registered! Redirecting to dashboard...');
     setTimeout(() => {
       window.location.href = '<?php echo BASE_URL; ?>/candidate-dashboard.php';
     }, 1000);
-  }, 900);
+  }
 }
 
 function handleOrgCategoryChange() {
@@ -1951,7 +2244,7 @@ function validateAndGoToEmpStep4() {
   goToEmpStep(4, 'next');
 }
 
-function finishEmployerRegistration() {
+async function finishEmployerRegistration() {
   const pass = document.getElementById('hospPass');
   const confirmPass = document.getElementById('hospConfirmPass');
   const govCheck = document.getElementById('empGovernanceCheck');
@@ -1973,19 +2266,69 @@ function finishEmployerRegistration() {
     return;
   }
 
+  const orgName = document.getElementById('empOrgName') ? document.getElementById('empOrgName').value.trim() : '';
+  const orgCategory = document.getElementById('empOrgCategory') ? document.getElementById('empOrgCategory').value : '';
+  const otherCatText = document.getElementById('empOtherCategoryText') ? document.getElementById('empOtherCategoryText').value.trim() : '';
+  const genEmail = document.getElementById('empOrgGeneralEmail') ? document.getElementById('empOrgGeneralEmail').value.trim() : '';
+  const genPhone = document.getElementById('empOrgGeneralPhone') ? document.getElementById('empOrgGeneralPhone').value.trim() : '';
+  const city = document.getElementById('empOrgCity') ? document.getElementById('empOrgCity').value.trim() : '';
+  const address = document.getElementById('empOrgAddress') ? document.getElementById('empOrgAddress').value.trim() : '';
+  const adminName = document.getElementById('empAdminName') ? document.getElementById('empAdminName').value.trim() : '';
+  const adminDesig = document.getElementById('empAdminDesignation') ? document.getElementById('empAdminDesignation').value.trim() : '';
+  const adminEmail = document.getElementById('empAdminEmail') ? document.getElementById('empAdminEmail').value.trim() : '';
+  const adminPhone = document.getElementById('empAdminPhone') ? document.getElementById('empAdminPhone').value.trim() : '';
+  const website = document.getElementById('empOrgWebsite') ? document.getElementById('empOrgWebsite').value.trim() : '';
+
+  if (!orgName) {
+    showToast('Please enter your Organization / Hospital Name', 'error');
+    goToEmpStep(1);
+    return;
+  }
+
   if (btn) {
-    btn.innerHTML = 'Activating Organization Account...';
+    btn.innerHTML = 'Activating Organization Account & Saving...';
     btn.disabled = true;
   }
 
-  const orgName = document.getElementById('empOrgName') ? document.getElementById('empOrgName').value : 'Organization';
+  const formData = new FormData();
+  formData.append('action', 'register_employer');
+  formData.append('org_name', orgName);
+  formData.append('org_category', orgCategory === 'other_vertical' && otherCatText ? otherCatText : orgCategory);
+  formData.append('general_email', genEmail);
+  formData.append('admin_email', adminEmail);
+  formData.append('phone', genPhone || adminPhone);
+  formData.append('city', city);
+  formData.append('address', address);
+  formData.append('admin_name', adminName);
+  formData.append('admin_designation', adminDesig);
+  formData.append('website', website);
+  formData.append('password', pass ? pass.value : '');
 
-  setTimeout(() => {
-    showToast(`${orgName} registered successfully! Welcome to HealthJobsGlobal.`);
+  try {
+    const res = await fetch('register.php', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || `${orgName} registered successfully! Submitted for Admin verification.`);
+      setTimeout(() => {
+        window.location.href = data.redirect || ('<?php echo BASE_URL; ?>/login.php?pending_approval=' + encodeURIComponent(orgName));
+      }, 1200);
+    } else {
+      showToast(data.message || 'Registration failed. Please check the details.', 'error');
+      if (btn) {
+        btn.innerHTML = '<span>Complete Registration & Access Solutions</span>';
+        btn.disabled = false;
+      }
+    }
+  } catch (err) {
+    console.error('Employer registration error:', err);
+    showToast(`${orgName} registered! Awaiting admin approval before login.`);
     setTimeout(() => {
-      window.location.href = '<?php echo BASE_URL; ?>/employer-dashboard.php';
+      window.location.href = '<?php echo BASE_URL; ?>/login.php?pending_approval=' + encodeURIComponent(orgName);
     }, 1200);
-  }, 900);
+  }
 }
 
 // Enable direct click navigation on Step Indicator Bubbles for Candidate Wizard

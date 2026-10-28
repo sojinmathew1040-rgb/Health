@@ -1,0 +1,19 @@
+{
+    "name": "healthjobs/healthjobsglobal",
+    "description": "HealthJobsGlobal - Healthcare Career & Hospital Medical Recruitment Platform",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.4.0",
+        "ext-mysqli": "*",
+        "ext-json": "*",
+        "ext-session": "*"
+    },
+    "config": {
+        "platform": {
+            "php": "8.4.0"
+        },
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

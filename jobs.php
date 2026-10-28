@@ -40,12 +40,13 @@ $deptCounts = [];
 foreach ($deptOptions as $dKey => $dMeta) {
     $count = 0;
     foreach ($featuredJobs as $j) {
+        $jDept = (string)($j['department'] ?? '');
         if (is_array($dMeta['match'])) {
             foreach ($dMeta['match'] as $m) {
-                if (stripos($j['department'], $m) !== false) { $count++; break; }
+                if (stripos($jDept, (string)$m) !== false) { $count++; break; }
             }
         } else {
-            if (stripos($j['department'], $dMeta['match']) !== false) $count++;
+            if (stripos($jDept, (string)$dMeta['match']) !== false) $count++;
         }
     }
     $deptCounts[$dKey] = $count;
@@ -56,15 +57,15 @@ $filteredJobs = array_filter($featuredJobs, function($j) use ($searchQ, $searchL
     // 1. Keyword search (Title, Company, Specialty, Description, Tags, Qualification)
     if (!empty($searchQ)) {
         $q = strtolower($searchQ);
-        $titleMatch = stripos($j['title'], $q) !== false;
-        $compMatch = stripos($j['company'], $q) !== false;
-        $specMatch = stripos($j['specialty'], $q) !== false;
-        $descMatch = stripos($j['description'], $q) !== false;
-        $qualMatch = stripos($j['qualification'] ?? '', $q) !== false;
+        $titleMatch = stripos((string)($j['title'] ?? ''), $q) !== false;
+        $compMatch = stripos((string)($j['company'] ?? ''), $q) !== false;
+        $specMatch = stripos((string)($j['specialty'] ?? ''), $q) !== false;
+        $descMatch = stripos((string)($j['description'] ?? ''), $q) !== false;
+        $qualMatch = stripos((string)($j['qualification'] ?? ''), $q) !== false;
         $tagMatch = false;
         if (!empty($j['tags']) && is_array($j['tags'])) {
             foreach ($j['tags'] as $t) {
-                if (stripos($t, $q) !== false) { $tagMatch = true; break; }
+                if (stripos((string)$t, $q) !== false) { $tagMatch = true; break; }
             }
         }
         if (!$titleMatch && !$compMatch && !$specMatch && !$descMatch && !$qualMatch && !$tagMatch) {
@@ -74,7 +75,7 @@ $filteredJobs = array_filter($featuredJobs, function($j) use ($searchQ, $searchL
 
     // 2. Location
     if (!empty($searchLoc)) {
-        if (stripos($j['location'], $searchLoc) === false) {
+        if (stripos((string)($j['location'] ?? ''), $searchLoc) === false) {
             return false;
         }
     }
@@ -82,15 +83,16 @@ $filteredJobs = array_filter($featuredJobs, function($j) use ($searchQ, $searchL
     // 3. Departments
     if (!empty($searchDepts)) {
         $deptMatched = false;
+        $jDept = (string)($j['department'] ?? '');
         foreach ($searchDepts as $dKey) {
             if (isset($deptOptions[$dKey])) {
                 $target = $deptOptions[$dKey]['match'];
                 if (is_array($target)) {
                     foreach ($target as $m) {
-                        if (stripos($j['department'], $m) !== false) { $deptMatched = true; break; }
+                        if (stripos($jDept, (string)$m) !== false) { $deptMatched = true; break; }
                     }
                 } else {
-                    if (stripos($j['department'], $target) !== false) { $deptMatched = true; }
+                    if (stripos($jDept, (string)$target) !== false) { $deptMatched = true; }
                 }
             }
         }
@@ -100,11 +102,11 @@ $filteredJobs = array_filter($featuredJobs, function($j) use ($searchQ, $searchL
     // 4. Council Registration
     if (!empty($searchCouncils)) {
         $councilMatched = false;
-        $cReq = $j['council_req'] ?? '';
+        $cReq = (string)($j['council_req'] ?? '');
         foreach ($searchCouncils as $cKey) {
             if (isset($councilOptions[$cKey])) {
                 foreach ($councilOptions[$cKey]['keywords'] as $kw) {
-                    if (stripos($cReq, $kw) !== false) {
+                    if (stripos($cReq, (string)$kw) !== false) {
                         $councilMatched = true;
                         break;
                     }
