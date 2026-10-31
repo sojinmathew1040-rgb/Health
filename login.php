@@ -1,20 +1,20 @@
 <?php
 /**
  * HealthJobsGlobal.com - Single Unified Login (Candidate & Hospital Employer)
- * The system automatically detects whether the account is Candidate or Employer
- * and authenticates to the corresponding dashboard.
+ * The system automatically detects whether the account is Candidate or Employer.
+ * Candidates are redirected to the homepage (index.php) and Employers to employer-dashboard.php.
  */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
 
-// If already logged in, redirect to respective dashboard
+// If already logged in, redirect to respective destination
 if (isLoggedIn()) {
     $curr = getLoggedInUser();
     if (($curr['role'] ?? '') === 'employer') {
         header("Location: " . BASE_URL . "/employer-dashboard.php");
     } else {
-        header("Location: " . BASE_URL . "/candidate-dashboard.php");
+        header("Location: " . BASE_URL . "/index.php");
     }
     exit;
 }
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'initials' => !empty($cand['name']) ? strtoupper(substr($cand['name'], 0, 1) . substr(strrchr($cand['name'], ' ') ?: ' ', 1, 1)) : 'AM',
                             'council' => $cand['council_reg'] ?? ''
                         ];
-                        $dest = !empty($redirectUrl) ? $redirectUrl : (BASE_URL . '/candidate-dashboard.php');
+                        $dest = !empty($redirectUrl) ? $redirectUrl : (BASE_URL . '/index.php');
                         header("Location: " . $dest);
                         exit;
                     }
@@ -81,6 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $passOk = false;
                     if (!empty($hosp['password']) && password_verify($password, $hosp['password'])) {
                         $passOk = true;
+                    } elseif (!empty($hosp['initial_random_password']) && hash_equals((string)$hosp['initial_random_password'], (string)$password)) {
+                        $passOk = true;
                     } elseif (empty($hosp['password']) && $password === 'password123') {
                         $passOk = true;
                     } elseif ($hosp['contact_email'] === 'careers@astermedcity.com' && $password === 'password123') {
@@ -93,20 +95,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Check Admin Approval (verified = 1)
                         $isApproved = isset($hosp['verified']) && ((int)$hosp['verified'] === 1);
                         if (!$isApproved) {
-                            $errorMessage = "Your Hospital / Employer account ('" . htmlspecialchars($hosp['name']) . "') is currently pending review & verification by the HealthJobsGlobal Admin. Please wait until your account is approved before signing in.";
+                            $errorMessage = "Your Healthcare Employer account ('" . htmlspecialchars($hosp['name']) . "') is currently pending review & verification by the HealthJobsGlobal Admin. The account will be active after verification. An activation email with your system-generated login password will be sent once approved.";
                         } else {
                             $_SESSION['user'] = [
                                 'id' => $hosp['id'],
                                 'role' => 'employer',
                                 'name' => !empty($hosp['admin_name']) ? $hosp['admin_name'] : ($hosp['name'] . ' HR'),
                                 'hospital' => $hosp['name'],
-                                'title' => 'Head of Medical Talent Acquisition',
+                                'title' => !empty($hosp['admin_designation']) ? $hosp['admin_designation'] : 'Head of Medical Talent Acquisition',
                                 'email' => !empty($hosp['contact_email']) ? $hosp['contact_email'] : ($hosp['admin_email'] ?? ''),
                                 'phone' => $hosp['phone'] ?? '',
                                 'initials' => !empty($hosp['logo_text']) ? substr($hosp['logo_text'], 0, 2) : strtoupper(substr($hosp['name'], 0, 2)),
-                                'accreditation' => $hosp['badge'] ?? 'JCI & NABH Accredited'
+                                'accreditation' => $hosp['badge'] ?? 'JCI & NABH Accredited',
+                                'must_change_password' => (int)($hosp['must_change_password'] ?? 0),
+                                'temp_password' => $password
                             ];
-                            $dest = !empty($redirectUrl) ? $redirectUrl : (BASE_URL . '/employer-dashboard.php');
+                            $dest = BASE_URL . '/employer-dashboard.php';
+                            if (!empty($redirectUrl) && !str_contains($redirectUrl, 'index.php') && !str_contains($redirectUrl, 'login.php') && !str_contains($redirectUrl, 'candidate-') && !str_contains($redirectUrl, 'register.php')) {
+                                $dest = $redirectUrl;
+                            }
                             header("Location: " . $dest);
                             exit;
                         }
@@ -128,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'initials' => 'AM',
                     'council' => 'TCMC 45892'
                 ];
-                header("Location: " . (!empty($redirectUrl) ? $redirectUrl : (BASE_URL . '/candidate-dashboard.php')));
+                header("Location: " . (!empty($redirectUrl) ? $redirectUrl : (BASE_URL . '/index.php')));
                 exit;
             } elseif ($identifier === 'careers@astermedcity.com' && $password === 'password123') {
                 $_SESSION['user'] = [
@@ -170,16 +177,6 @@ require_once __DIR__ . '/components/header.php';
         </p>
       </div>
 
-      <?php if (!empty($_GET['pending_approval'])): ?>
-        <div style="background: #FFFBEB; border: 1.5px solid #FCD34D; color: #92400E; padding: 14px 16px; border-radius: var(--radius-md); font-size: 0.88rem; margin-bottom: 22px; display: flex; align-items: flex-start; gap: 12px;">
-          <span style="font-size: 1.25rem; line-height: 1;">⏳</span>
-          <div>
-            <strong style="color: #78350F; font-size: 0.95rem;">Employer Registration Submitted!</strong><br>
-            Your Healthcare Institution account for <strong><?php echo htmlspecialchars($_GET['pending_approval'] !== '1' ? $_GET['pending_approval'] : 'your organization'); ?></strong> has been registered and is pending verification & approval by the HealthJobsGlobal Admin. Once approved, you can log in below.
-          </div>
-        </div>
-      <?php endif; ?>
-
       <?php if (!empty($errorMessage)): ?>
         <div style="background: #FEF2F2; border: 1px solid #FCA5A5; color: #991B1B; padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.88rem; margin-bottom: 22px; display: flex; align-items: center; gap: 10px;">
           <?php echo getIcon('alert-triangle', '', 18); ?>
@@ -203,7 +200,12 @@ require_once __DIR__ . '/components/header.php';
             <label class="form-label" for="loginPass" style="margin: 0;">Password *</label>
             <a href="#" onclick="alert('Password reset link sent to your registered email address.'); return false;" style="font-size: 0.8rem; color: var(--color-secondary); font-weight: 600;">Forgot Password?</a>
           </div>
-          <input type="password" name="password" id="loginPass" class="form-control" placeholder="••••••••" required>
+          <div style="position: relative;">
+            <input type="password" name="password" id="loginPass" class="form-control" placeholder="••••••••" style="padding-right: 44px;" required>
+            <button type="button" onclick="togglePassView('loginPass', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-text-muted); display: flex; align-items: center; justify-content: center; padding: 6px;" title="See password while typing">
+              <?php echo getIcon('eye', '', 18); ?>
+            </button>
+          </div>
         </div>
 
         <div style="margin-bottom: 22px; font-size: 0.85rem; color: var(--color-text-secondary); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
@@ -245,6 +247,20 @@ require_once __DIR__ . '/components/header.php';
 </div>
 
 <script>
+function togglePassView(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = '<?php echo getIcon('eye-off', '', 18); ?>';
+    btn.title = 'Hide password';
+  } else {
+    input.type = 'password';
+    btn.innerHTML = '<?php echo getIcon('eye', '', 18); ?>';
+    btn.title = 'See password while typing';
+  }
+}
+
 function fillAndSubmitDemo(identifier, password) {
   document.getElementById('loginIdentifier').value = identifier;
   document.getElementById('loginPass').value = password;

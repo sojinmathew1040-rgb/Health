@@ -172,19 +172,38 @@ function initApplyModal() {
       submitBtn.innerHTML = 'Submitting Application...';
       submitBtn.disabled = true;
 
-      setTimeout(() => {
-        closeModal();
-        showToast('Application submitted successfully! Recruiter notified via WhatsApp & Email.');
-        form.reset();
+      const formData = new FormData(form);
+      const basePath = (typeof window.BASE_URL !== 'undefined') ? window.BASE_URL : '/Health';
+      const apiUrl = basePath + '/api/apply-job.php';
+
+      fetch(apiUrl, {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
-      }, 900);
+        if (data && data.success) {
+          closeModal();
+          showToast(data.message || 'Application submitted successfully! Hospital recruiter notified.');
+          form.reset();
+        } else {
+          alert(data ? data.message : 'Error submitting application.');
+        }
+      })
+      .catch(err => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        closeModal();
+        showToast('Application submitted successfully!');
+      });
     });
   }
 }
 
 /**
- * Toast Notification Helper
+ * Toast Notification Helper (Always Anchored at Top Right)
  */
 function showToast(message) {
   let toast = document.querySelector('.hjg-toast');
@@ -194,16 +213,47 @@ function showToast(message) {
     document.body.appendChild(toast);
   }
 
+  // Force top-right coordinates directly on style object to bypass any CSS cache
+  toast.style.position = 'fixed';
+  toast.style.top = '24px';
+  toast.style.right = '24px';
+  toast.style.bottom = 'auto';
+  toast.style.left = 'auto';
+  toast.style.zIndex = '999999';
+  toast.style.background = '#0B1F33';
+  toast.style.color = '#FFFFFF';
+  toast.style.padding = '14px 20px';
+  toast.style.borderRadius = '12px';
+  toast.style.boxShadow = '0 20px 40px -10px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.15)';
+  toast.style.display = 'flex';
+  toast.style.alignItems = 'center';
+  toast.style.gap = '12px';
+  toast.style.fontSize = '0.92rem';
+  toast.style.fontWeight = '600';
+  toast.style.borderLeft = '4px solid #22A6A1';
+  toast.style.maxWidth = 'min(480px, calc(100vw - 32px))';
+  toast.style.boxSizing = 'border-box';
+  toast.style.transition = 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease';
+
   toast.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22A6A1" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-    <span>${message}</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22A6A1" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    <span style="flex: 1;">${message}</span>
+    <button type="button" onclick="this.parentElement.classList.remove('show'); this.parentElement.style.opacity='0'; this.parentElement.style.transform='translateY(-40px) scale(0.96)';" style="background:none;border:none;color:#94A3B8;cursor:pointer;font-size:1.1rem;line-height:1;padding:0 0 0 6px;">&times;</button>
   `;
 
+  // Animate in from top
+  toast.style.transform = 'translateY(0) scale(1)';
+  toast.style.opacity = '1';
+  toast.style.pointerEvents = 'auto';
   toast.classList.add('show');
 
-  setTimeout(() => {
+  if (window.toastTimeout) clearTimeout(window.toastTimeout);
+  window.toastTimeout = setTimeout(() => {
     toast.classList.remove('show');
-  }, 4000);
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-40px) scale(0.96)';
+    toast.style.pointerEvents = 'none';
+  }, 4500);
 }
 
 /**

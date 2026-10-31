@@ -119,87 +119,90 @@ require_once __DIR__ . '/includes/topbar.php';
 
 <?php if ($pendingHospitals > 0): ?>
 <!-- Pending Hospital Review Alert Banner -->
-<div style="background: linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%); border: 1.5px solid #F59E0B; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.12); flex-wrap: wrap; gap: 14px;">
+<div style="background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1.5px solid #FCD34D; border-radius: 18px; padding: 18px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.08); flex-wrap: wrap; gap: 14px;">
   <div style="display: flex; align-items: center; gap: 14px;">
-    <div style="width: 44px; height: 44px; border-radius: 10px; background: #D97706; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35);">
+    <div style="width: 44px; height: 44px; border-radius: 12px; background: #FF9500; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; box-shadow: 0 2px 8px rgba(255, 149, 0, 0.35);">
       ⏳
     </div>
     <div>
       <div style="font-weight: 700; color: #92400E; font-size: 0.98rem; display: flex; align-items: center; gap: 8px;">
-        <span><?php echo $pendingHospitals; ?> Hospital / Employer Registration<?php echo $pendingHospitals > 1 ? 's' : ''; ?> Awaiting Admin Approval</span>
-        <span class="badge" style="background: #FEE2E2; color: #991B1B; font-size: 0.72rem; padding: 2px 8px; border: 1px solid #FCA5A5;">Login Locked</span>
+        <span><?php echo $pendingHospitals; ?> Employer Registration<?php echo $pendingHospitals > 1 ? 's' : ''; ?> Awaiting Verification</span>
+        <span class="badge" style="background: #FEF2F2; color: #991B1B; font-size: 0.72rem; padding: 2px 8px; border: 1px solid #FECACA;">Awaiting Admin Review</span>
       </div>
-      <div style="font-size: 0.85rem; color: #78350F; margin-top: 3px;">
-        New employer accounts from the frontend cannot log in until approved by an administrator here.
+      <div style="font-size: 0.84rem; color: #78350F; margin-top: 2px;">
+        Accounts will be active after verification. Verify to generate and dispatch login credentials.
       </div>
     </div>
   </div>
   <div>
-    <a href="employers.php?filter=pending" class="btn btn-primary btn-sm" style="background: #D97706; border-color: #B45309; color: #fff; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(180, 83, 9, 0.35); padding: 8px 16px;">
-      <span>Review & Approve Now (<?php echo $pendingHospitals; ?>)</span>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    <a href="employer-verifications.php" class="btn btn-primary" style="background: #D97706; border-color: #B45309; padding: 8px 18px; font-weight: 700;">
+      <span>Review & Verify (<?php echo $pendingHospitals; ?>) &rarr;</span>
     </a>
   </div>
 </div>
 <?php endif; ?>
 
-<!-- KPI Stats Grid -->
+<!-- Apple Pro KPI Stats Grid -->
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-content">
       <div class="stat-label">Active Clinical Jobs</div>
       <div class="stat-value"><?php echo $activeJobs; ?></div>
       <div class="stat-sub">
-        <span style="color: #10B981; font-weight: 600;">✓ Live</span> across all specialties
+        <span style="color: #34C759; font-weight: 600;">✓ Live</span> across all specialties
       </div>
     </div>
     <div class="stat-icon blue">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
     </div>
   </div>
 
   <div class="stat-card">
     <div class="stat-content">
-      <div class="stat-label">Verified Hospitals</div>
-      <div class="stat-value"><?php echo $verifiedHospitals; ?></div>
+      <div class="stat-label">Awaiting Verification</div>
+      <div class="stat-value" style="<?php echo $pendingHospitals > 0 ? 'color: #D97706;' : ''; ?>"><?php echo $pendingHospitals; ?></div>
       <div class="stat-sub">
         <?php if ($pendingHospitals > 0): ?>
-          <a href="employers.php?filter=pending" style="color: #D97706; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-            <span>⚠️ <?php echo $pendingHospitals; ?> Pending Approval</span>
+          <a href="employer-verifications.php" style="color: #D97706; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+            <span>⚠️ Action Required &rarr;</span>
           </a>
         <?php else: ?>
-          <span style="color: #0284C7; font-weight: 600;">NABH & JCI</span> Quaternary networks
+          <span style="color: #34C759; font-weight: 600;">All Verified</span> All Clear
         <?php endif; ?>
       </div>
     </div>
-    <div class="stat-icon emerald">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+    <div class="stat-icon amber">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
     </div>
   </div>
 
   <div class="stat-card">
     <div class="stat-content">
-      <div class="stat-label">Candidate Pool</div>
-      <div class="stat-value"><?php echo $totalCandidates; ?></div>
+      <div class="stat-label">Hospital Networks</div>
+      <div class="stat-value"><?php echo $verifiedHospitals; ?></div>
       <div class="stat-sub">
-        <span style="color: #7C3AED; font-weight: 600;">Council Verified</span> Specialists
+        <a href="employers.php" style="color: #0071E3; font-weight: 600; text-decoration: none;">
+          <span>NABH & JCI Partners &rarr;</span>
+        </a>
+      </div>
+    </div>
+    <div class="stat-icon emerald">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-content">
+      <div class="stat-label">Clinical Departments</div>
+      <div class="stat-value"><?php echo count($depts); ?></div>
+      <div class="stat-sub">
+        <a href="departments.php" style="color: #0071E3; font-weight: 600; text-decoration: none;">
+          <span>Specialty Hubs &rarr;</span>
+        </a>
       </div>
     </div>
     <div class="stat-icon purple">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-content">
-      <div class="stat-label">Inbound Applications</div>
-      <div class="stat-value"><?php echo $totalApps; ?></div>
-      <div class="stat-sub">
-        <span style="color: #D97706; font-weight: 600;"><?php echo $shortlistedApps; ?> Shortlisted</span> candidates
-      </div>
-    </div>
-    <div class="stat-icon amber">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/></svg>
     </div>
   </div>
 </div>
@@ -222,7 +225,7 @@ require_once __DIR__ . '/includes/topbar.php';
   </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 28px;">
+<div class="dashboard-split-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 28px;">
   <!-- Recent Postings Card -->
   <div class="card">
     <div class="card-header">

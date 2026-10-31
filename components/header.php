@@ -22,19 +22,23 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
   <meta property="og:type" content="website">
 
   <!-- Core Stylesheets -->
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css?v=3.4">
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/animations.css?v=3.4">
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/responsive.css?v=3.4">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css?v=4.8">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/animations.css?v=4.8">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/responsive.css?v=4.8">
 </head>
 <body>
 
+<?php
+$isEmployerUser = isLoggedIn() && ((getLoggedInUser()['role'] ?? '') === 'employer');
+$brandHomeUrl = $isEmployerUser ? (BASE_URL . '/employer-dashboard.php') : (BASE_URL . '/index.php');
+?>
 <!-- Global Header -->
 <header class="site-header">
   <div class="container container-wide">
     <div class="header-inner">
       
       <!-- Brand Logo -->
-      <a href="<?php echo BASE_URL; ?>/index.php" class="site-logo" aria-label="HealthJobsGlobal Home">
+      <a href="<?php echo $brandHomeUrl; ?>" class="site-logo" aria-label="HealthJobsGlobal Home">
         <div class="logo-symbol">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2v20M2 12h20"/>
@@ -46,16 +50,20 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
 
       <!-- Desktop Navigation -->
       <nav class="nav-desktop" aria-label="Primary Navigation">
-        <?php foreach ($navLinks as $item): 
-          $isActive = ($currentPage === basename($item['url']));
-        ?>
-          <a href="<?php echo $item['url']; ?>" class="nav-link <?php echo $isActive ? 'active' : ''; ?>">
-            <?php echo htmlspecialchars($item['title']); ?>
-            <?php if (!empty($item['badge'])): ?>
-              <span class="nav-count-badge"><?php echo htmlspecialchars($item['badge']); ?></span>
-            <?php endif; ?>
-          </a>
-        <?php endforeach; ?>
+        <?php if ($isEmployerUser): ?>
+          <!-- Clean Header: No navbar links for employers -->
+        <?php else: ?>
+          <?php foreach ($navLinks as $item): 
+            $isActive = ($currentPage === basename($item['url']));
+          ?>
+            <a href="<?php echo $item['url']; ?>" class="nav-link <?php echo $isActive ? 'active' : ''; ?>">
+              <?php echo htmlspecialchars($item['title']); ?>
+              <?php if (!empty($item['badge'])): ?>
+                <span class="nav-count-badge"><?php echo htmlspecialchars($item['badge']); ?></span>
+              <?php endif; ?>
+            </a>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </nav>
 
       <!-- Header Actions -->
@@ -66,8 +74,12 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
           <!-- Logged In User Pill & Dropdown -->
           <div class="user-profile-menu-container">
             <button type="button" class="user-profile-toggle-btn" id="userProfileToggleBtn" onclick="toggleUserHeaderDropdown(event)" aria-expanded="false" aria-haspopup="true">
-              <div class="user-avatar-badge">
-                <?php echo htmlspecialchars($currentUser['initials'] ?? 'AM'); ?>
+              <div class="user-avatar-badge" style="<?php echo !empty($currentUser['logo_image']) ? 'padding:0; overflow:hidden; background:#FFFFFF;' : ''; ?>">
+                <?php if (!empty($currentUser['logo_image'])): ?>
+                  <img src="<?php echo BASE_URL . '/' . htmlspecialchars($currentUser['logo_image']); ?>" style="width:100%; height:100%; object-fit:cover; display:block;" alt="Logo">
+                <?php else: ?>
+                  <?php echo htmlspecialchars($currentUser['initials'] ?? 'AM'); ?>
+                <?php endif; ?>
                 <span class="user-status-dot"></span>
               </div>
               <div class="user-pill-text">
@@ -83,8 +95,12 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
             <div id="userHeaderDropdownMenu" class="user-header-dropdown" role="menu">
               <!-- Dropdown Header Info Card -->
               <div class="user-dd-header">
-                <div class="user-dd-avatar">
-                  <?php echo htmlspecialchars($currentUser['initials'] ?? 'AM'); ?>
+                <div class="user-dd-avatar" style="<?php echo !empty($currentUser['logo_image']) ? 'padding:0; overflow:hidden; background:#FFFFFF;' : ''; ?>">
+                  <?php if (!empty($currentUser['logo_image'])): ?>
+                    <img src="<?php echo BASE_URL . '/' . htmlspecialchars($currentUser['logo_image']); ?>" style="width:100%; height:100%; object-fit:cover; display:block;" alt="Logo">
+                  <?php else: ?>
+                    <?php echo htmlspecialchars($currentUser['initials'] ?? 'AM'); ?>
+                  <?php endif; ?>
                 </div>
                 <div class="user-dd-info">
                   <div class="user-dd-name"><?php echo htmlspecialchars($currentUser['name'] ?? 'Healthcare User'); ?></div>
@@ -99,17 +115,13 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
               <!-- Dropdown Menu Links -->
               <div class="user-dd-body">
                 <?php if (($currentUser['role'] ?? '') === 'employer'): ?>
-                  <a href="<?php echo BASE_URL; ?>/employer-dashboard.php" class="user-dd-link" role="menuitem">
-                    <span class="user-dd-icon"><?php echo getIcon('briefcase', '', 15); ?></span>
-                    <span class="user-dd-label">Employer Dashboard</span>
+                  <a href="<?php echo BASE_URL; ?>/employer-profile.php" class="user-dd-link" role="menuitem">
+                    <span class="user-dd-icon"><?php echo getIcon('edit', '', 15); ?></span>
+                    <span class="user-dd-label">Edit Profile</span>
                   </a>
-                  <a href="<?php echo BASE_URL; ?>/post-job.php" class="user-dd-link" role="menuitem">
-                    <span class="user-dd-icon"><?php echo getIcon('plus', '', 15); ?></span>
-                    <span class="user-dd-label">Post New Vacancy</span>
-                  </a>
-                  <a href="<?php echo BASE_URL; ?>/candidate-search.php" class="user-dd-link" role="menuitem">
-                    <span class="user-dd-icon"><?php echo getIcon('user', '', 15); ?></span>
-                    <span class="user-dd-label">Search Verified Talent</span>
+                  <a href="<?php echo BASE_URL; ?>/employer-profile.php#password" class="user-dd-link" role="menuitem" onclick="if(typeof openChangePasswordModal==='function'){openChangePasswordModal(false); if(typeof toggleUserHeaderDropdown==='function')toggleUserHeaderDropdown(); return false;}">
+                    <span class="user-dd-icon"><?php echo getIcon('lock', '', 15); ?></span>
+                    <span class="user-dd-label">Change Password</span>
                   </a>
                 <?php else: ?>
                   <a href="<?php echo BASE_URL; ?>/candidate-dashboard.php" class="user-dd-link" role="menuitem">
@@ -186,34 +198,35 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
     </div>
 
     <div class="drawer-links">
-      <?php foreach ($navLinks as $item): ?>
-        <a href="<?php echo $item['url']; ?>" class="drawer-link">
-          <span><?php echo htmlspecialchars($item['title']); ?></span>
+      <?php if ($isEmployerUser): ?>
+        <a href="<?php echo BASE_URL; ?>/employer-dashboard.php" class="drawer-link">
+          <span>Employer Dashboard</span>
           <?php echo getIcon('chevron-right', '', 18); ?>
         </a>
-      <?php endforeach; ?>
-      <?php if (isLoggedIn()): 
-        $cu = getLoggedInUser();
-        $isEmp = (($cu['role'] ?? '') === 'employer');
-      ?>
-        <?php if ($isEmp): ?>
-          <a href="<?php echo BASE_URL; ?>/employer-dashboard.php" class="drawer-link">
-            <span>Employer Dashboard</span>
+        <a href="<?php echo BASE_URL; ?>/post-job.php" class="drawer-link">
+          <span>Post New Vacancy</span>
+          <?php echo getIcon('chevron-right', '', 18); ?>
+        </a>
+        <a href="<?php echo BASE_URL; ?>/employer-dashboard.php#jobs" class="drawer-link">
+          <span>My Job Postings</span>
+          <?php echo getIcon('chevron-right', '', 18); ?>
+        </a>
+        <a href="<?php echo BASE_URL; ?>/employer-dashboard.php#applications" class="drawer-link">
+          <span>Candidate Applications</span>
+          <?php echo getIcon('chevron-right', '', 18); ?>
+        </a>
+        <a href="<?php echo BASE_URL; ?>/candidate-search.php" class="drawer-link">
+          <span>Search Verified Talent</span>
+          <?php echo getIcon('chevron-right', '', 18); ?>
+        </a>
+      <?php else: ?>
+        <?php foreach ($navLinks as $item): ?>
+          <a href="<?php echo $item['url']; ?>" class="drawer-link">
+            <span><?php echo htmlspecialchars($item['title']); ?></span>
             <?php echo getIcon('chevron-right', '', 18); ?>
           </a>
-          <a href="<?php echo BASE_URL; ?>/post-job.php" class="drawer-link">
-            <span>Post New Vacancy</span>
-            <?php echo getIcon('chevron-right', '', 18); ?>
-          </a>
-          <a href="<?php echo BASE_URL; ?>/manage-jobs.php" class="drawer-link">
-            <span>Manage Postings</span>
-            <?php echo getIcon('chevron-right', '', 18); ?>
-          </a>
-          <a href="<?php echo BASE_URL; ?>/candidate-search.php" class="drawer-link">
-            <span>Search Verified Talent</span>
-            <?php echo getIcon('chevron-right', '', 18); ?>
-          </a>
-        <?php else: ?>
+        <?php endforeach; ?>
+        <?php if (isLoggedIn()): ?>
           <a href="<?php echo BASE_URL; ?>/candidate-dashboard.php" class="drawer-link">
             <span>Candidate Dashboard</span>
             <?php echo getIcon('chevron-right', '', 18); ?>
@@ -234,16 +247,16 @@ $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
             <span>WhatsApp & Email Alerts</span>
             <?php echo getIcon('chevron-right', '', 18); ?>
           </a>
+        <?php else: ?>
+          <a href="<?php echo BASE_URL; ?>/candidate-dashboard.php" class="drawer-link">
+            <span>Candidate Portal</span>
+            <?php echo getIcon('chevron-right', '', 18); ?>
+          </a>
+          <a href="<?php echo BASE_URL; ?>/employer-dashboard.php" class="drawer-link">
+            <span>Employer Portal</span>
+            <?php echo getIcon('chevron-right', '', 18); ?>
+          </a>
         <?php endif; ?>
-      <?php else: ?>
-        <a href="<?php echo BASE_URL; ?>/candidate-dashboard.php" class="drawer-link">
-          <span>Candidate Portal</span>
-          <?php echo getIcon('chevron-right', '', 18); ?>
-        </a>
-        <a href="<?php echo BASE_URL; ?>/employer-dashboard.php" class="drawer-link">
-          <span>Employer Portal</span>
-          <?php echo getIcon('chevron-right', '', 18); ?>
-        </a>
       <?php endif; ?>
     </div>
 

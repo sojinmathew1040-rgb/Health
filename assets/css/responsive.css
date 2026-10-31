@@ -616,6 +616,19 @@ html, body {
     justify-content: center;
   }
 
+  /* Employer Dashboard Cover Banner & Squircle Logo on Tablets / Mobile */
+  .employer-cover-wrapper {
+    height: 180px !important;
+  }
+
+  .employer-cover-wrapper #employerCoverDefaultArt {
+    padding: 0 20px !important;
+  }
+
+  .employer-cover-wrapper #employerCoverDefaultArt > div:first-child > div:nth-child(2) {
+    font-size: 1.35rem !important;
+  }
+
   /* Multi-step Registration Wizard */
   .wizard-steps-header {
     gap: 4px;

@@ -88,10 +88,18 @@ $jobUrl = BASE_URL . '/job-details.php?id=' . (int)($job['id'] ?? 0);
 
     <div class="flex items-center gap-2">
       <a href="<?php echo $jobUrl; ?>" class="btn btn-outline btn-sm">Details</a>
-      <?php if (isLoggedIn()): ?>
-        <button type="button" class="btn btn-primary btn-sm" onclick="openApplyModal('<?php echo $job['id']; ?>', '<?php echo addslashes($safeTitle); ?>', '<?php echo addslashes($safeCompany); ?>')">
-          Apply Now
-        </button>
+      <?php if (isLoggedIn()): 
+        $userRole = getLoggedInUser()['role'] ?? '';
+      ?>
+        <?php if ($userRole === 'candidate'): ?>
+          <button type="button" class="btn btn-primary btn-sm" onclick="openApplyModal('<?php echo $job['id']; ?>', '<?php echo addslashes($safeTitle); ?>', '<?php echo addslashes($safeCompany); ?>')">
+            Apply Now
+          </button>
+        <?php elseif ($userRole === 'employer'): ?>
+          <a href="<?php echo BASE_URL; ?>/employer-dashboard.php?view_job=<?php echo $job['id']; ?>#vacancy-apps-<?php echo $job['id']; ?>" class="btn btn-primary btn-sm">
+            Applicants
+          </a>
+        <?php endif; ?>
       <?php else: ?>
         <button type="button" class="btn btn-primary btn-sm" onclick="openAuthModal('Direct Hospital Application', 'To apply for <?php echo addslashes($safeTitle); ?> at <?php echo addslashes($safeCompany); ?>, please register or sign in to verify your council credentials.')">
           Apply Now

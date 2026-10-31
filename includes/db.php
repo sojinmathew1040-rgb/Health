@@ -10,6 +10,11 @@ $username = "root";
 $password = "";
 $dbname = "healthjobs";
 
+// Ensure BASE_URL is always defined across entire system
+if (!defined('BASE_URL')) {
+    define('BASE_URL', '/Health');
+}
+
 // PHP 8.1 - 8.4 compatibility: Prevent uncaught mysqli_sql_exception on initial connection probe
 mysqli_report(MYSQLI_REPORT_OFF);
 
@@ -36,6 +41,32 @@ if (!$con || $con->connect_error) {
 
 if ($con && !$con->connect_error) {
     $con->set_charset("utf8mb4");
+
+    // Ensure columns exist on applications table
+    @$con->query("ALTER TABLE `applications` ADD COLUMN `hospital_id` INT DEFAULT 0");
+    @$con->query("ALTER TABLE `applications` ADD COLUMN `resume` VARCHAR(255) DEFAULT ''");
+    @$con->query("ALTER TABLE `applications` ADD COLUMN `notice_period` VARCHAR(50) DEFAULT ''");
+
+    // Ensure columns exist on hospitals table for cover banner and profile photo
+    @$con->query("ALTER TABLE `hospitals` ADD COLUMN `cover_image` VARCHAR(255) DEFAULT ''");
+    @$con->query("ALTER TABLE `hospitals` ADD COLUMN `logo_image` VARCHAR(255) DEFAULT ''");
+
+    // Ensure columns exist on jobs table
+    @$con->query("ALTER TABLE `jobs` ADD COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP");
+
+    // Clear legacy dummy/seeded jobs and applications once
+    $lockDir = __DIR__ . '/../storage';
+    if (!is_dir($lockDir)) {
+        @mkdir($lockDir, 0777, true);
+    }
+    $lockFile = $lockDir . '/dummy_cleared_v2.lock';
+    if (!file_exists($lockFile)) {
+        // Clear all mock applications and mock jobs
+        @$con->query("TRUNCATE TABLE `applications`");
+        @$con->query("TRUNCATE TABLE `jobs`");
+        @$con->query("UPDATE `hospitals` SET `openings` = 0");
+        @file_put_contents($lockFile, date('Y-m-d H:i:s'));
+    }
 }
 
 /**
@@ -179,31 +210,10 @@ function initAdminDatabase(?mysqli $con): bool {
         $stmtH->close();
     }
 
-    // Seed Jobs
-    $jobs = [
-        [101, 'Senior Consultant – Interventional Cardiology', 1, 'Aster Medcity', 'Kochi, Kerala, India', 'Doctors & Clinical Specialists', 'Cardiology', '8+ Years Post-DM/DNB', 'Full Time · On-Site', '₹42,00,000 - ₹55,00,000 / year', 'Travancore-Cochin Medical Council / NMC Active', 'MBBS, MD (Gen Med), DM / DNB (Cardiology)', 'We are seeking an experienced Interventional Cardiologist to lead high-volume Cath Lab procedures, complex coronary interventions, and participate in clinical mentorship.', 'Cath Lab,Primary PCI,TAVI', 'Active', 1, 1, 1420, 18],
-        [102, 'Nurse In-Charge – Intensive Care Unit (ICU)', 2, 'Apollo Hospitals Enterprise', 'Hyderabad, Telangana, India', 'Nursing Specialties', 'Critical Care', '4 - 7 Years in Level-3 ICU', 'Full Time · Rotational Shifts', '₹6,50,000 - ₹8,50,000 / year', 'Telangana State Nursing Council Registered', 'B.Sc Nursing / Post Basic B.Sc (Critical Care Certified)', 'Lead a dedicated squad of critical care nurses in our 40-bed medical-surgical ICU. Ensure adherence to JCI clinical protocols and patient safety benchmarks.', 'Ventilator Management,Hemodynamic Monitoring,BLS & ACLS', 'Active', 1, 0, 980, 34],
-        [103, 'Consultant Radiologist (MRI / Cross-Sectional Imaging)', 3, 'Cleveland Clinic Abu Dhabi', 'Abu Dhabi, United Arab Emirates', 'Diagnostics, Pathology & Pharmacy', 'Radiology', '5+ Years Specialist Experience', 'Full Time · Permanent Contract', 'AED 65,000 - 85,000 / month (Tax Free)', 'DOH / HAAD Consultant License Eligible', 'MD / DNB / FRCR / American Board in Radiodiagnosis', 'Exceptional opportunity for a fellowship-trained Radiologist to join a state-of-the-art imaging institute equipped with cutting-edge 3T MR and photon-counting CT technology.', '3T MRI,Dual-Source CT,Cardiac Imaging', 'Active', 1, 1, 2140, 26],
-        [104, 'Staff Nurse – Operation Theatre & Surgical Scrub', 6, 'Lisie Hospital', 'Kochi, Kerala, India', 'Nursing Specialties', 'OT Nursing', '3 - 6 Years in Cardiac / Ortho OT', 'Full Time · Rotational Shifts', '₹5,20,000 - ₹7,00,000 / year', 'Kerala Nursing Council (KNC) Registered', 'B.Sc Nursing / GNM with OT Specialization', 'Join our high-volume cardiothoracic surgical suites. Assist in open heart surgeries, valve replacements, and complex vascular repairs under renowned surgical faculty.', 'Aseptic Protocol,Cardiac Surgery Assist,CSSD Coordination', 'Active', 1, 1, 890, 19],
-        [105, 'Consultant Medical Oncologist', 4, 'KIMSHEALTH Multi-Specialty Hospital', 'Thiruvananthapuram, Kerala, India', 'Doctors & Clinical Specialists', 'Oncology', '4+ Years Post-DM/DNB', 'Full Time', '₹36,00,000 - ₹48,00,000 / year', 'Travancore-Cochin Medical Council / NMC Registered', 'MBBS, MD (Medicine), DM / DNB (Medical Oncology)', 'Direct outpatient oncology consultations, clinical chemotherapy regimens, immunotherapy trials, and lead weekly multidisciplinary tumor board rounds.', 'Chemotherapy Protocol,Immunotherapy,Tumor Board Review', 'Active', 1, 0, 1150, 12],
-        [106, 'Senior Physiotherapist – Neuro-Rehabilitation', 5, 'Amrita Institute of Medical Sciences (AIMS)', 'Kochi, Kerala, India', 'Allied Health & Paramedical', 'Physiotherapy', '3 - 6 Years Experience', 'Full Time · Day Shifts', '₹5,50,000 - ₹7,50,000 / year', 'Kerala State Physiotherapy Council Registered', 'BPT + MPT (Neurology / Neuro-sciences)', 'Provide advanced neuro-rehabilitative therapy to inpatients and outpatients suffering from traumatic brain injuries, stroke, and progressive neurological conditions.', 'Stroke Rehab,Robotic Gait Training,Spinal Cord Injury', 'Active', 0, 0, 640, 15],
-        [107, 'Chief Perfusionist – Cardiothoracic Surgery', 6, 'Lisie Hospital', 'Kochi, Kerala, India', 'Allied Health & Paramedical', 'Perfusion Technology', '6 - 10 Years in Heart Surgery Unit', 'Full Time', '₹12,00,000 - ₹18,00,000 / year', 'Board of Cardiovascular Perfusion India Certified', 'B.Sc / M.Sc in Perfusion Technology', 'Manage extra-corporeal circulation, ECMO circuits, and autotransfusion machines during complex CABG, pediatric cardiac corrections, and heart transplants.', 'Heart-Lung Machine,ECMO Management,IABP Monitoring', 'Active', 1, 1, 720, 8],
-        [108, 'Staff Nurse – Neonatal Intensive Care Unit (NICU)', 1, 'Aster Medcity', 'Kochi, Kerala, India', 'Nursing Specialties', 'NICU Nursing', '2 - 5 Years in Level-3 NICU', 'Full Time · Rotational Shifts', '₹4,80,000 - ₹6,50,000 / year', 'Kerala Nursing Council (KNC) Registered', 'B.Sc Nursing with Neonatal Care Fellowship', 'Provide comprehensive neonatal nursing to extreme pre-term infants and critically ill newborns in our 20-bed tertiary NICU with advanced developmental care protocols.', 'Premature Neonate Care,CPAP,Phototherapy', 'Active', 0, 0, 580, 22],
-        [109, 'Clinical Pharmacist – Antibiotic Stewardship & ICU', 2, 'Apollo Hospitals Enterprise', 'Chennai, Tamil Nadu, India', 'Diagnostics, Pathology & Pharmacy', 'Clinical Pharmacy', '2 - 5 Years in JCI Hospital', 'Full Time', '₹6,00,000 - ₹8,20,000 / year', 'Pharmacy Council of India (PCI) Registered', 'Pharm.D (Doctor of Pharmacy)', 'Collaborate with ICU intensivists and infectious disease consultants to optimize antimicrobial therapy, therapeutic drug monitoring, and patient discharge counseling.', 'Drug-Drug Interaction,Dose TDM,Antibiotic Stewardship', 'Active', 0, 0, 490, 14],
-        [110, 'Assistant Medical Administrator / Operations Manager', 4, 'KIMSHEALTH Multi-Specialty Hospital', 'Thiruvananthapuram, Kerala, India', 'Hospital Operations & Leadership', 'Hospital Administration', '5 - 8 Years in Quaternary Hospital', 'Full Time', '₹14,00,000 - ₹18,50,000 / year', 'MHA / MBA in Hospital Management', 'MBBS/BAMS + MHA from recognized medical university', 'Oversee day-to-day inpatient bed allotment, emergency triage flow, clinical compliance, and coordinate medical superintendent audits across 40 clinical departments.', 'NABH Standards,Patient Throughput,Clinical Audit', 'Active', 0, 0, 810, 21],
-        [111, 'Consultant Emergency Medicine (MD / DNB / MRCEM)', 2, 'Apollo Hospitals Enterprise', 'Bengaluru, Karnataka, India', 'Doctors & Clinical Specialists', 'Emergency Medicine', '3 - 6 Years in Trauma Center', 'Full Time · Rotational Emergency Roster', '₹28,00,000 - ₹38,00,000 / year', 'Karnataka Medical Council / NMC Registered', 'MBBS, MD / DNB (Emergency Medicine) / MRCEM (UK)', 'Manage acute resuscitations, polytrauma triage, point-of-care ultrasound (POCUS), and disaster response in a Level-1 comprehensive emergency department.', 'Polytrauma,POCUS Ultrasound,Airway Management', 'Active', 1, 1, 1310, 29]
-    ];
+    // Jobs and Applications tables start clean (no mock seeding)
+    // Only real vacancies posted by employers and real candidate applications exist in the platform.
 
-    $stmtJ = $con->prepare("INSERT IGNORE INTO `jobs` (`id`, `title`, `hospital_id`, `company`, `location`, `department`, `specialty`, `experience`, `employment_type`, `salary`, `council_req`, `qualification`, `description`, `tags`, `status`, `featured`, `urgent`, `views`, `applications_count`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    if ($stmtJ) {
-        foreach ($jobs as $j) {
-            $stmtJ->bind_param("isisssssssssssiiiii", $j[0], $j[1], $j[2], $j[3], $j[4], $j[5], $j[6], $j[7], $j[8], $j[9], $j[10], $j[11], $j[12], $j[13], $j[14], $j[15], $j[16], $j[17], $j[18]);
-            $stmtJ->execute();
-        }
-        $stmtJ->close();
-    }
-
-    // Seed Candidates
+    // Seed Candidates (Sample candidate logins for testing if needed)
     $candidates = [
         [1, 'Dr. Arjun Menon', 'dr.arjun@hospital.com', '+91 98470 12345', 'MD, DM (Cardiology)', 'Interventional Cardiology', '8+ Years', 'TCMC 45892', 'Kochi, Kerala', 'Verified'],
         [2, 'Sister Preethi Thomas', 'preethi.thomas@nursemail.com', '+91 97455 67890', 'B.Sc Nursing, Post-Basic ICU', 'Critical Care Nursing', '5 Years', 'KNC 88214', 'Ernakulam, Kerala', 'Verified'],
@@ -221,23 +231,7 @@ function initAdminDatabase(?mysqli $con): bool {
         $stmtC->close();
     }
 
-    // Seed Inbound Applications
-    $applications = [
-        [1, 101, 'Senior Consultant – Interventional Cardiology', 'Aster Medcity', 'Dr. Arjun Menon', 'dr.arjun@hospital.com', '+91 98470 12345', 'MD, DM (Cardiology)', '8+ Years', 'TCMC 45892', 'Looking forward to leading cath lab clinical operations and transcatheter therapies.', 'Shortlisted'],
-        [2, 102, 'Nurse In-Charge – Intensive Care Unit (ICU)', 'Apollo Hospitals Enterprise', 'Sister Preethi Thomas', 'preethi.thomas@nursemail.com', '+91 97455 67890', 'B.Sc Nursing', '5 Years', 'KNC 88214', 'Experienced in mechanical ventilation weaning and hemodynamic surveillance.', 'Interview Scheduled'],
-        [3, 111, 'Consultant Emergency Medicine (MD / DNB / MRCEM)', 'Apollo Hospitals Enterprise', 'Dr. Rajesh Nair', 'dr.rajesh.nair@healthmail.com', '+91 94471 23456', 'MD (Emergency Med)', '6 Years', 'KMC 67341', 'Level-1 trauma center team lead with extensive airway management record.', 'Reviewing'],
-        [4, 107, 'Chief Perfusionist – Cardiothoracic Surgery', 'Lisie Hospital', 'Naveen Kurian', 'naveen.perfusion@lisiealumni.org', '+91 99460 98765', 'M.Sc Perfusion', '7 Years', 'BCPI 1290', 'Extensive experience with ECMO and pediatric open-heart perfusion procedures.', 'Applied'],
-        [5, 109, 'Clinical Pharmacist – Antibiotic Stewardship & ICU', 'Apollo Hospitals Enterprise', 'Ananya Sharma', 'ananya.sharma@pharmacycare.com', '+91 98112 34567', 'Pharm.D', '3 Years', 'PCI 55421', 'Focused on TDM calculations and antimicrobial resistance reduction.', 'Offered']
-    ];
-
-    $stmtA = $con->prepare("INSERT IGNORE INTO `applications` (`id`, `job_id`, `job_title`, `hospital_name`, `candidate_name`, `candidate_email`, `candidate_phone`, `qualification`, `experience`, `council_reg`, `cover_letter`, `status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    if ($stmtA) {
-        foreach ($applications as $a) {
-            $stmtA->bind_param("iissssssssss", $a[0], $a[1], $a[2], $a[3], $a[4], $a[5], $a[6], $a[7], $a[8], $a[9], $a[10], $a[11]);
-            $stmtA->execute();
-        }
-        $stmtA->close();
-    }
+    // Inbound Applications table starts empty (only real candidate applications)
 
     // Seed Departments
     $depts = [
@@ -284,9 +278,218 @@ if (!$con->connect_error) {
         @$con->query("ALTER TABLE `hospitals` ADD `admin_name` VARCHAR(150) DEFAULT '' AFTER `admin_email`");
     }
 
+    // Auto-migrate employer registration details and activation password management
+    $hospNewCols = [
+        'must_change_password' => "ALTER TABLE `hospitals` ADD `must_change_password` TINYINT(1) DEFAULT 0",
+        'admin_designation' => "ALTER TABLE `hospitals` ADD `admin_designation` VARCHAR(150) DEFAULT '' AFTER `admin_name`",
+        'general_email' => "ALTER TABLE `hospitals` ADD `general_email` VARCHAR(191) DEFAULT ''",
+        'general_phone' => "ALTER TABLE `hospitals` ADD `general_phone` VARCHAR(50) DEFAULT ''",
+        'admin_phone' => "ALTER TABLE `hospitals` ADD `admin_phone` VARCHAR(50) DEFAULT ''",
+        'address' => "ALTER TABLE `hospitals` ADD `address` TEXT DEFAULT NULL",
+        'city' => "ALTER TABLE `hospitals` ADD `city` VARCHAR(150) DEFAULT ''",
+        'pincode' => "ALTER TABLE `hospitals` ADD `pincode` VARCHAR(20) DEFAULT ''",
+        'country' => "ALTER TABLE `hospitals` ADD `country` VARCHAR(100) DEFAULT 'India'",
+        'operating_capacity' => "ALTER TABLE `hospitals` ADD `operating_capacity` VARCHAR(100) DEFAULT ''",
+        'services' => "ALTER TABLE `hospitals` ADD `services` TEXT DEFAULT NULL",
+        'other_services_details' => "ALTER TABLE `hospitals` ADD `other_services_details` TEXT DEFAULT NULL",
+        'activated_at' => "ALTER TABLE `hospitals` ADD `activated_at` DATETIME DEFAULT NULL",
+        'initial_random_password' => "ALTER TABLE `hospitals` ADD `initial_random_password` VARCHAR(100) DEFAULT ''"
+    ];
+    foreach ($hospNewCols as $cName => $sqlAlter) {
+        $chk = @$con->query("SHOW COLUMNS FROM `hospitals` LIKE '{$cName}'");
+        if ($chk && $chk->num_rows === 0) {
+            @$con->query($sqlAlter);
+        }
+    }
+
     // Ensure default demo accounts have hashed password 'password123'
     $defaultPassHash = password_hash('password123', PASSWORD_DEFAULT);
     @$con->query("UPDATE `candidates` SET `password` = '{$defaultPassHash}' WHERE `email` = 'dr.arjun@hospital.com' AND (`password` = '' OR `password` IS NULL)");
     @$con->query("UPDATE `hospitals` SET `password` = '{$defaultPassHash}' WHERE `contact_email` = 'careers@astermedcity.com' AND (`password` = '' OR `password` IS NULL)");
+
+    // System Settings Table Auto-Migration
+    @$con->query("CREATE TABLE IF NOT EXISTS `system_settings` (
+        `setting_key` VARCHAR(100) PRIMARY KEY,
+        `setting_value` TEXT,
+        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Initialize default company sender email if not set
+    $chkSet = @$con->query("SELECT `setting_value` FROM `system_settings` WHERE `setting_key` = 'company_sender_email' LIMIT 1");
+    if ($chkSet && $chkSet->num_rows === 0) {
+        @$con->query("INSERT IGNORE INTO `system_settings` (`setting_key`, `setting_value`) VALUES 
+            ('company_sender_email', 'careers@healthjobsglobal.com'),
+            ('company_name', 'HealthJobsGlobal Administration'),
+            ('company_reply_to', 'careers@healthjobsglobal.com')");
+    }
+
+    // Email Outbox Table Auto-Migration
+    @$con->query("CREATE TABLE IF NOT EXISTS `email_outbox` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `recipient` VARCHAR(191) NOT NULL,
+        `recipient_name` VARCHAR(191) DEFAULT '',
+        `sender` VARCHAR(191) NOT NULL,
+        `sender_name` VARCHAR(191) DEFAULT '',
+        `subject` VARCHAR(255) NOT NULL,
+        `body` TEXT NOT NULL,
+        `temp_password` VARCHAR(100) DEFAULT '',
+        `type` VARCHAR(50) DEFAULT 'activation',
+        `status` VARCHAR(50) DEFAULT 'Dispatched',
+        `delivery_note` VARCHAR(255) DEFAULT '',
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 }
+
+/**
+ * Retrieve system setting by key with fallback
+ */
+function getSystemSetting(?mysqli $con, string $key, string $default = ''): string {
+    if (!$con || $con->connect_error) {
+        return $default;
+    }
+    $stmt = $con->prepare("SELECT `setting_value` FROM `system_settings` WHERE `setting_key` = ? LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("s", $key);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $row = $res->fetch_assoc()) {
+            $stmt->close();
+            return ($row['setting_value'] !== null && $row['setting_value'] !== '') ? $row['setting_value'] : $default;
+        }
+        $stmt->close();
+    }
+    return $default;
+}
+
+/**
+ * Save or update system setting
+ */
+function setSystemSetting(?mysqli $con, string $key, string $value): bool {
+    if (!$con || $con->connect_error) {
+        return false;
+    }
+    $stmt = $con->prepare("INSERT INTO `system_settings` (`setting_key`, `setting_value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`)");
+    if ($stmt) {
+        $stmt->bind_param("ss", $key, $value);
+        $res = $stmt->execute();
+        $stmt->close();
+        return $res;
+    }
+    return false;
+}
+
+/**
+ * Get configured company sender email for all admin dispatches
+ */
+function getCompanySenderEmail(?mysqli $con): string {
+    $email = getSystemSetting($con, 'company_sender_email', 'careers@healthjobsglobal.com');
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return 'careers@healthjobsglobal.com';
+    }
+    return $email;
+}
+
+/**
+ * Get configured company display name for outgoing emails
+ */
+function getCompanyDisplayName(?mysqli $con): string {
+    return getSystemSetting($con, 'company_name', 'HealthJobsGlobal Operations');
+}
+
+/**
+ * Cascade delete hospital and all its related clinical jobs, applications, and assets
+ */
+function deleteHospitalCascade(?mysqli $con, int $hospitalId): bool {
+    if (!$con || $con->connect_error || $hospitalId <= 0) {
+        return false;
+    }
+
+    // 1. Fetch Hospital Info
+    $hospName = '';
+    $stmtH = $con->prepare("SELECT `name` FROM `hospitals` WHERE `id` = ? LIMIT 1");
+    if ($stmtH) {
+        $stmtH->bind_param("i", $hospitalId);
+        $stmtH->execute();
+        $resH = $stmtH->get_result();
+        if ($resH && $hRow = $resH->fetch_assoc()) {
+            $hospName = trim($hRow['name']);
+        }
+        $stmtH->close();
+    }
+
+    // 2. Identify all clinical jobs linked by hospital_id OR company name
+    $jobIds = [];
+    $hospNameEsc = $con->real_escape_string($hospName);
+    $whereJobs = "`hospital_id` = {$hospitalId}";
+    if (!empty($hospName)) {
+        $whereJobs .= " OR `company` = '{$hospNameEsc}'";
+    }
+
+    $resJ = $con->query("SELECT `id` FROM `jobs` WHERE {$whereJobs}");
+    if ($resJ) {
+        while ($j = $resJ->fetch_assoc()) {
+            $jobIds[] = (int)$j['id'];
+        }
+    }
+
+    // 3. Delete all inbound applications linked to these jobs or hospital name
+    if (!empty($jobIds)) {
+        $idList = implode(',', $jobIds);
+        @$con->query("DELETE FROM `applications` WHERE `job_id` IN ({$idList})");
+    }
+    if (!empty($hospName)) {
+        @$con->query("DELETE FROM `applications` WHERE `hospital_name` = '{$hospNameEsc}'");
+    }
+
+    // 4. Delete all clinical jobs linked to this hospital
+    if (!empty($jobIds)) {
+        $idList = implode(',', $jobIds);
+        @$con->query("DELETE FROM `jobs` WHERE `id` IN ({$idList})");
+    }
+    if (!empty($hospName)) {
+        @$con->query("DELETE FROM `jobs` WHERE `company` = '{$hospNameEsc}'");
+    }
+
+    // 5. Delete the hospital record itself
+    $stmtD = $con->prepare("DELETE FROM `hospitals` WHERE `id` = ?");
+    if ($stmtD) {
+        $stmtD->bind_param("i", $hospitalId);
+        $resD = $stmtD->execute();
+        $stmtD->close();
+        return $resD;
+    }
+    return false;
+}
+
+/**
+ * Clean up orphan clinical jobs whose parent hospital has already been deleted
+ */
+function cleanupOrphanJobs(?mysqli $con): int {
+    if (!$con || $con->connect_error) {
+        return 0;
+    }
+
+    // Clean up jobs that reference a deleted hospital
+    $deletedCount = 0;
+    $resOrphans = $con->query("SELECT j.id, j.hospital_id, j.company FROM `jobs` j 
+        LEFT JOIN `hospitals` h1 ON j.hospital_id = h1.id 
+        LEFT JOIN `hospitals` h2 ON j.company = h2.name 
+        WHERE h1.id IS NULL AND h2.id IS NULL");
+    
+    if ($resOrphans && $resOrphans->num_rows > 0) {
+        $orphanIds = [];
+        while ($row = $resOrphans->fetch_assoc()) {
+            $orphanIds[] = (int)$row['id'];
+        }
+        if (!empty($orphanIds)) {
+            $idList = implode(',', $orphanIds);
+            @$con->query("DELETE FROM `applications` WHERE `job_id` IN ({$idList})");
+            @$con->query("DELETE FROM `jobs` WHERE `id` IN ({$idList})");
+            $deletedCount = count($orphanIds);
+        }
+    }
+    return $deletedCount;
+}
+
+
 

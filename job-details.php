@@ -5,8 +5,12 @@
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/functions.php';
 
-$jobId = intval($_GET['id'] ?? 101);
+$jobId = intval($_GET['id'] ?? 0);
 $job = getJobById($jobId);
+if (empty($job) || empty($job['title'])) {
+    header("Location: " . BASE_URL . "/jobs.php");
+    exit;
+}
 $company = getCompanyById($job['company_id'] ?? 1);
 
 $pageTitle = $job['title'] . " — " . $job['company'] . " | HealthJobsGlobal";
@@ -49,14 +53,24 @@ require_once __DIR__ . '/components/header.php';
       </div>
 
       <div class="flex items-center gap-3">
-        <button class="btn btn-outline job-bookmark-btn" data-title="<?php echo htmlspecialchars($job['title']); ?>">
-          <?php echo getIcon('bookmark', '', 18); ?>
-          <span>Save Job</span>
-        </button>
-        <button type="button" class="btn btn-primary btn-lg" onclick="openApplyModal('<?php echo $job['id']; ?>', '<?php echo addslashes($job['title']); ?>', '<?php echo addslashes($job['company']); ?>')">
-          <span>Apply for this Position</span>
-          <?php echo getIcon('arrow-right', '', 18); ?>
-        </button>
+        <?php 
+        $isEmployer = isLoggedIn() && ((getLoggedInUser()['role'] ?? '') === 'employer');
+        if ($isEmployer): 
+        ?>
+          <a href="<?php echo BASE_URL; ?>/employer-dashboard.php?view_job=<?php echo $job['id']; ?>#vacancy-apps-<?php echo $job['id']; ?>" class="btn btn-primary btn-lg">
+            <span>Manage Job & Applicants</span>
+            <?php echo getIcon('arrow-right', '', 18); ?>
+          </a>
+        <?php else: ?>
+          <button class="btn btn-outline job-bookmark-btn" data-title="<?php echo htmlspecialchars($job['title']); ?>">
+            <?php echo getIcon('bookmark', '', 18); ?>
+            <span>Save Job</span>
+          </button>
+          <button type="button" class="btn btn-primary btn-lg" onclick="openApplyModal('<?php echo $job['id']; ?>', '<?php echo addslashes($job['title']); ?>', '<?php echo addslashes($job['company']); ?>')">
+            <span>Apply for this Position</span>
+            <?php echo getIcon('arrow-right', '', 18); ?>
+          </button>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -162,13 +176,23 @@ require_once __DIR__ . '/components/header.php';
 
       <!-- Apply Callout Footer -->
       <div style="border-top: 1px solid var(--color-border); padding-top: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-        <div>
-          <div style="font-size: 0.85rem; color: var(--color-text-muted);">Ready to apply?</div>
-          <div style="font-weight: 700; color: var(--color-primary);">Send your verified CV directly to the hiring committee.</div>
-        </div>
-        <button type="button" class="btn btn-primary" onclick="openApplyModal('<?php echo $job['id']; ?>', '<?php echo addslashes($job['title']); ?>', '<?php echo addslashes($job['company']); ?>')">
-          Apply Now
-        </button>
+        <?php if ($isEmployer): ?>
+          <div>
+            <div style="font-size: 0.85rem; color: var(--color-text-muted);">Employer Administration</div>
+            <div style="font-weight: 700; color: var(--color-primary);">Track candidates and manage applications for this vacancy.</div>
+          </div>
+          <a href="<?php echo BASE_URL; ?>/employer-dashboard.php?view_job=<?php echo $job['id']; ?>#vacancy-apps-<?php echo $job['id']; ?>" class="btn btn-primary">
+            Review Candidate Pipeline
+          </a>
+        <?php else: ?>
+          <div>
+            <div style="font-size: 0.85rem; color: var(--color-text-muted);">Ready to apply?</div>
+            <div style="font-weight: 700; color: var(--color-primary);">Send your verified CV directly to the hiring committee.</div>
+          </div>
+          <button type="button" class="btn btn-primary" onclick="openApplyModal('<?php echo $job['id']; ?>', '<?php echo addslashes($job['title']); ?>', '<?php echo addslashes($job['company']); ?>')">
+            Apply Now
+          </button>
+        <?php endif; ?>
       </div>
 
     </main>

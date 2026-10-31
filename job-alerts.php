@@ -7,6 +7,16 @@ $pageDescription = "Configure real-time WhatsApp and Email vacancy alerts matchi
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/functions.php';
+
+// Employer role guard
+if (isLoggedIn()) {
+    $currentUser = getLoggedInUser();
+    if (($currentUser['role'] ?? '') === 'employer') {
+        header("Location: " . BASE_URL . "/employer-dashboard.php");
+        exit;
+    }
+}
+
 require_once __DIR__ . '/components/header.php';
 ?>
 

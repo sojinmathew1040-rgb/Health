@@ -7,9 +7,22 @@ $pageHeading = "System Health & Database Configuration";
 
 require_once __DIR__ . '/includes/header.php';
 
-// Handle Table Optimization or Re-seed
+// Handle Table Optimization, Re-seed, or Company Sender Email Update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+
+    if ($action === 'update_company_sender_email') {
+        $newSenderEmail = trim($_POST['company_sender_email'] ?? '');
+        $newCompanyName = trim($_POST['company_name'] ?? '');
+        if (!empty($newSenderEmail) && filter_var($newSenderEmail, FILTER_VALIDATE_EMAIL)) {
+            setSystemSetting($con, 'company_sender_email', $newSenderEmail);
+            if (!empty($newCompanyName)) {
+                setSystemSetting($con, 'company_name', $newCompanyName);
+            }
+            header('Location: settings.php?success=' . urlencode("Company dispatch email successfully set to: {$newSenderEmail}"));
+            exit;
+        }
+    }
 
     if ($action === 'reseed_data') {
         initAdminDatabase($con);
@@ -134,5 +147,52 @@ require_once __DIR__ . '/includes/topbar.php';
     </div>
   </div>
 </div>
+
+<!-- Central Outgoing Company Email Gateway Card -->
+<?php
+$curCompanyEmail = getCompanySenderEmail($con);
+$curCompanyName = getCompanyDisplayName($con);
+?>
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header" style="background: linear-gradient(135deg, #F0F9FF, #E0F2FE); border-bottom: 1px solid #BAE6FD;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 1.3rem;">✉️</span>
+      <div>
+        <h3 class="card-title" style="color: #0369A1;">Central Outgoing Company Email Dispatch Gateway</h3>
+        <p style="font-size: 0.8rem; color: #0284C7; margin: 0;">Configure the primary company email ID used for sending employer activation passwords and rejection advisories</p>
+      </div>
+    </div>
+    <span class="badge badge-active" style="background: #0284C7;">Active Gateway</span>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="settings.php" style="max-width: 680px;">
+      <input type="hidden" name="action" value="update_company_sender_email">
+      
+      <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 20px;">
+        <div style="font-size: 0.85rem; color: #334155; line-height: 1.5;">
+          When administrators verify an employer or send a non-approval explanation notice, all outgoing emails will originate from the email address specified below as the official <strong>From:</strong> and <strong>Reply-To:</strong> headers.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="font-weight: 700;">Company Common Email Address *</label>
+        <input type="email" name="company_sender_email" class="form-control" value="<?php echo htmlspecialchars($curCompanyEmail); ?>" placeholder="e.g. careers@healthjobsglobal.com or admin@yourhospital.com" required style="font-size: 0.95rem; font-weight: 700; color: var(--primary);">
+        <small style="color: var(--text-muted); display: block; margin-top: 4px;">Recipients will see this email address and can reply directly to it.</small>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" style="font-weight: 700;">Company / Sender Display Name *</label>
+        <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($curCompanyName); ?>" placeholder="e.g. HealthJobsGlobal Administration" required>
+        <small style="color: var(--text-muted); display: block; margin-top: 4px;">Name displayed beside the email in recipient inboxes.</small>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Save & Apply Outgoing Email
+      </button>
+    </form>
+  </div>
+</div>
+
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

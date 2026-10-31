@@ -43,31 +43,37 @@
   transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Toast Notification */
+/* Toast Notification - Enforced in Top Right Corner */
 .hjg-toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 3000;
-  background: var(--color-primary);
-  color: #FFFFFF;
-  padding: 14px 20px;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xl);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  border-left: 4px solid var(--color-accent);
-  transform: translateY(100px);
-  opacity: 0;
-  transition: all var(--transition-smooth);
+  position: fixed !important;
+  top: 24px !important;
+  right: 24px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 999999 !important;
+  background: #0B1F33 !important;
+  color: #FFFFFF !important;
+  padding: 14px 22px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  border-left: 4px solid #22A6A1 !important;
+  max-width: min(480px, calc(100vw - 32px)) !important;
+  box-sizing: border-box !important;
+  transform: translateY(-40px) scale(0.96) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease !important;
 }
 
 .hjg-toast.show {
-  transform: translateY(0);
-  opacity: 1;
+  transform: translateY(0) scale(1) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 /* Smooth Tab transitions */
@@ -83,4 +89,9 @@
 @keyframes tabFadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalPop {
+  0% { opacity: 0; transform: scale(0.92) translateY(12px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }

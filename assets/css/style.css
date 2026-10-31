@@ -3070,5 +3070,15 @@ h5 { font-size: 1.05rem; font-weight: 600; }
   }
 }
 
+/* Enforce Global Top-Right Toast Position */
+.hjg-toast {
+  position: fixed !important;
+  top: 24px !important;
+  right: 24px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 999999 !important;
+}
+
 
 

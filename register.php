@@ -17,14 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'register_candidate') {
         $firstName = trim($_POST['first_name'] ?? '');
         $lastName = trim($_POST['last_name'] ?? '');
-        $fullName = trim($firstName . ' ' . $lastName);
+        $fullName = mb_strtoupper(trim($firstName . ' ' . $lastName), 'UTF-8');
         $email = trim($_POST['email'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
         $password = trim($_POST['password'] ?? '');
         $degree = trim($_POST['degree'] ?? 'Healthcare Professional');
         $specialty = trim($_POST['specialty'] ?? '');
         $experience = trim($_POST['experience'] ?? 'Experienced');
-        $council_reg = trim($_POST['council_reg'] ?? '');
+        $council_reg = mb_strtoupper(trim($_POST['council_reg'] ?? ''), 'UTF-8');
         $location = trim($_POST['location'] ?? '');
 
         if (empty($fullName)) {
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 echo json_encode([
                     'success' => true,
-                    'redirect' => BASE_URL . '/candidate-dashboard.php',
+                    'redirect' => BASE_URL . '/index.php',
                     'message' => "Candidate account created successfully! Welcome, {$fullName}."
                 ]);
                 exit;
@@ -113,36 +113,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         ];
         echo json_encode([
             'success' => true,
-            'redirect' => BASE_URL . '/candidate-dashboard.php',
+            'redirect' => BASE_URL . '/index.php',
             'message' => "Registration successful! Welcome, {$fullName}."
         ]);
         exit;
     }
 
     if ($action === 'register_employer') {
-        $orgName = trim($_POST['org_name'] ?? '');
+        $orgName = mb_strtoupper(trim($_POST['org_name'] ?? ''), 'UTF-8');
         $orgCategory = trim($_POST['org_category'] ?? 'Quaternary Care Multi-Specialty Hospital');
+        $operatingCapacity = trim($_POST['operating_capacity'] ?? 'Medium (100 - 500 Beds / 250+ Staff)');
         $generalEmail = trim($_POST['general_email'] ?? '');
         $adminEmail = trim($_POST['admin_email'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
+        $generalPhone = trim($_POST['general_phone'] ?? '');
+        $adminPhone = trim($_POST['admin_phone'] ?? '');
+        $phone = !empty($generalPhone) ? $generalPhone : $adminPhone;
         $city = trim($_POST['city'] ?? '');
         $address = trim($_POST['address'] ?? '');
-        $adminName = trim($_POST['admin_name'] ?? '');
-        $adminDesig = trim($_POST['admin_designation'] ?? 'Head of Medical Talent Acquisition');
+        $pincode = trim($_POST['pincode'] ?? '');
+        $country = trim($_POST['country'] ?? 'India');
+        $adminName = mb_strtoupper(trim($_POST['admin_name'] ?? ''), 'UTF-8');
+        $adminDesig = mb_strtoupper(trim($_POST['admin_designation'] ?? 'Head of Medical Talent Acquisition'), 'UTF-8');
         $website = trim($_POST['website'] ?? '');
         $password = trim($_POST['password'] ?? '');
+        $services = trim($_POST['services'] ?? '');
+        $otherServicesDetails = trim($_POST['other_services_details'] ?? '');
 
         if (empty($orgName)) {
             echo json_encode(['success' => false, 'message' => 'Please provide the Organization / Hospital Name.']);
             exit;
         }
-        $contactEmail = !empty($generalEmail) ? $generalEmail : $adminEmail;
+        $contactEmail = !empty($adminEmail) ? $adminEmail : (!empty($generalEmail) ? $generalEmail : '');
         if (empty($contactEmail) || !filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
             echo json_encode(['success' => false, 'message' => 'Please enter a valid official Email Address.']);
-            exit;
-        }
-        if (empty($password) || strlen($password) < 6) {
-            echo json_encode(['success' => false, 'message' => 'Password must be at least 6 characters.']);
             exit;
         }
 
@@ -174,39 +177,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->close();
             }
 
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            // No password is required during employer registration.
+            // A secure unguessable placeholder is assigned until admin activates the account
+            // and generates the random default password.
+            $placeholderPass = bin2hex(random_bytes(16));
+            $hashed = password_hash($placeholderPass, PASSWORD_DEFAULT);
             $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $orgName), '-'));
             $cleanName = preg_replace('/[^a-zA-Z]/', '', $orgName);
             $logoText = strtoupper(substr($cleanName, 0, 5));
             $locationStr = $city . (!empty($address) ? ', ' . $address : '');
-            $overview = "{$orgName} is a premier healthcare institution registered on HealthJobsGlobal.";
+            $overview = "{$orgName} is a healthcare establishment registered on HealthJobsGlobal.";
 
-            // Employer registration requires Admin Approval (verified = 0)
-            $stmt = $con->prepare("INSERT INTO `hospitals` (`name`, `slug`, `logo_text`, `badge`, `type`, `location`, `openings`, `rating`, `verified`, `contact_email`, `admin_email`, `admin_name`, `phone`, `password`, `website`, `overview`, `created_at`) VALUES (?, ?, ?, 'NABH / JCI Accredited', ?, ?, 0, '4.8', 0, ?, ?, ?, ?, ?, ?, ?, NOW())");
+            // Employer registration requires Admin Approval (verified = 0, must_change_password = 1)
+            $stmt = $con->prepare("INSERT INTO `hospitals` (
+                `name`, `slug`, `logo_text`, `badge`, `type`, `location`, `openings`, `rating`, `verified`, 
+                `contact_email`, `admin_email`, `admin_name`, `admin_designation`, `general_email`, `general_phone`, 
+                `admin_phone`, `phone`, `address`, `city`, `pincode`, `country`, `operating_capacity`, `services`, 
+                `other_services_details`, `password`, `website`, `overview`, `must_change_password`, `created_at`
+            ) VALUES (
+                ?, ?, ?, 'NABH / JCI Accredited', ?, ?, 0, '4.8', 0,
+                ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, 1, NOW()
+            )");
             if ($stmt) {
-                $stmt->bind_param("ssssssssssss", $orgName, $slug, $logoText, $orgCategory, $locationStr, $contactEmail, $adminEmail, $adminName, $phone, $hashed, $website, $overview);
-                $stmt->execute();
-                $newId = $stmt->insert_id;
-                $stmt->close();
+                // Exactly 23 string type specifiers matching the 23 parameters
+                $stmt->bind_param(
+                    "sssssssssssssssssssssss",
+                    $orgName, $slug, $logoText, $orgCategory, $locationStr,
+                    $contactEmail, $adminEmail, $adminName, $adminDesig, $generalEmail, $generalPhone,
+                    $adminPhone, $phone, $address, $city, $pincode, $country, $operatingCapacity, $services,
+                    $otherServicesDetails, $hashed, $website, $overview
+                );
+                if ($stmt->execute()) {
+                    $newId = $stmt->insert_id;
+                    $stmt->close();
 
-                // Do not create session immediately: Admin approval required before login
-                echo json_encode([
-                    'success' => true,
-                    'pending_approval' => true,
-                    'redirect' => BASE_URL . '/login.php?pending_approval=' . urlencode($orgName),
-                    'message' => "{$orgName} registered successfully! Your account has been submitted for Admin Verification. You will be able to log in once approved by the Admin."
-                ]);
+                    echo json_encode([
+                        'success' => true,
+                        'pending_approval' => true,
+                        'redirect' => BASE_URL . '/index.php',
+                        'org_name' => $orgName,
+                        'message' => "Registration submitted for {$orgName}! Waiting for admin approval..."
+                    ]);
+                    exit;
+                } else {
+                    $dbErr = $stmt->error;
+                    $stmt->close();
+                    echo json_encode(['success' => false, 'message' => 'Failed to save registration: ' . $dbErr]);
+                    exit;
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Database prepare failed: ' . $con->error]);
                 exit;
             }
         }
 
-        // Fallback response if DB error
-        echo json_encode([
-            'success' => true,
-            'pending_approval' => true,
-            'redirect' => BASE_URL . '/login.php?pending_approval=' . urlencode($orgName),
-            'message' => "{$orgName} registered successfully! Your account has been submitted for Admin Verification. You will be able to log in once approved by the Admin."
-        ]);
+        echo json_encode(['success' => false, 'message' => 'Database connection unavailable. Please verify MySQL service.']);
         exit;
     }
 }
@@ -311,11 +338,11 @@ $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
                 <label class="form-label" for="regFirstName">First Name *</label>
-                <input type="text" id="regFirstName" class="form-control" placeholder="e.g. Arjun" required>
+                <input type="text" id="regFirstName" class="form-control" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();" placeholder="e.g. Arjun" required>
               </div>
               <div class="form-group">
                 <label class="form-label" for="regLastName">Surname / Last Name *</label>
-                <input type="text" id="regLastName" class="form-control" placeholder="e.g. Menon" required>
+                <input type="text" id="regLastName" class="form-control" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();" placeholder="e.g. Menon" required>
               </div>
             </div>
 
@@ -666,7 +693,7 @@ $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
                 <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
                   <div class="form-group">
                     <label class="form-label" for="regCouncilRegNo">Registration Number (Reg. No.) *</label>
-                    <input type="text" id="regCouncilRegNo" class="form-control" placeholder="e.g. TCMC 45892 / NMC-2019-98214 / NDR-48902">
+                    <input type="text" id="regCouncilRegNo" class="form-control" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();" placeholder="e.g. TCMC 45892 / NMC-2019-98214 / NDR-48902">
                     <span class="form-hint">Official Council License / Registration number</span>
                   </div>
                   <div class="form-group">
@@ -960,6 +987,8 @@ $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
                 <div style="font-size: 0.78rem; color: var(--color-text-muted); margin-top: 4px;">PDF or DOCX (Max 10MB) — If you don't have a CV right now, our system builds your digital profile automatically.</div>
                 <input type="file" id="wizardCVFile" style="display: none;" accept=".pdf,.doc,.docx" onchange="document.getElementById('wizardCVText').textContent = this.files[0] ? this.files[0].name : 'CV uploaded';">
               </div>
+            </div>
+
             <!-- Account Password & Single Login Credentials -->
             <div style="background: #FFFFFF; border: 1.5px solid var(--color-border); border-radius: var(--radius-lg); padding: 22px; margin-bottom: 22px;">
               <h4 style="font-size: 1.05rem; color: var(--color-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
@@ -1058,7 +1087,7 @@ $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
                 <label class="form-label" for="empOrgName">Organization / Institution Name *</label>
-                <input type="text" id="empOrgName" class="form-control" placeholder="e.g. Aster Medcity / Lisie Heart Hospital / Silver Oaks Geriatric Care" required>
+                <input type="text" id="empOrgName" class="form-control" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();" placeholder="e.g. Aster Medcity / Lisie Heart Hospital / Silver Oaks Geriatric Care" required>
               </div>
               <div class="form-group">
                 <label class="form-label" for="empOrgWebsite">Official Website URL</label>
@@ -1197,11 +1226,11 @@ $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
                 <label class="form-label" for="empAdminName">Authorizing Administrator Full Name *</label>
-                <input type="text" id="empAdminName" class="form-control" placeholder="e.g. Dr. Radhakrishnan / Ms. Rekha Nair" required>
+                <input type="text" id="empAdminName" class="form-control" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();" placeholder="e.g. Dr. Radhakrishnan / Ms. Rekha Nair" required>
               </div>
               <div class="form-group">
                 <label class="form-label" for="empAdminDesignation">Administrator Official Designation *</label>
-                <input type="text" id="empAdminDesignation" class="form-control" placeholder="e.g. Medical Superintendent / Managing Director / Chief HR Officer / Principal" required>
+                <input type="text" id="empAdminDesignation" class="form-control" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();" placeholder="e.g. Medical Superintendent / Managing Director / Chief HR Officer / Principal" required>
               </div>
             </div>
 
@@ -1301,17 +1330,28 @@ $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
               <textarea id="empOtherServicesDetails" class="form-control" rows="2" placeholder="e.g. Seeking placement agency partnership for UAE recruitment / Need overseas nurse deployment / Ambulance fleet lease / Equipment AMC..."></textarea>
             </div>
 
-            <!-- Account Security & Governance Declaration -->
+            <!-- Account Security & Governance Declaration (No Password Required during Registration) -->
             <div style="border-top: 1px dashed var(--color-border); padding-top: 20px; margin-top: 20px;">
-              <h4 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 14px;">Account Security & Governance</h4>
-              <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
-                <div class="form-group">
-                  <label class="form-label" for="hospPass">Create Account Password *</label>
-                  <input type="password" id="hospPass" class="form-control" placeholder="••••••••" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="hospConfirmPass">Confirm Password *</label>
-                  <input type="password" id="hospConfirmPass" class="form-control" placeholder="••••••••" required>
+              <h4 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>🛡️</span>
+                <span>Account Governance & Verification Protocol</span>
+              </h4>
+
+              <div style="background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border: 1.5px solid #BAE6FD; border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.05);">
+                <div style="display: flex; align-items: flex-start; gap: 14px;">
+                  <span style="font-size: 1.6rem; line-height: 1;">⚡</span>
+                  <div>
+                    <div style="font-weight: 800; color: #0369A1; font-size: 0.95rem; margin-bottom: 4px;">
+                      No Password Required at Registration
+                    </div>
+                    <div style="font-size: 0.86rem; color: #0C4A6E; line-height: 1.55;">
+                      Your organization credentials will be submitted for administrative verification. <strong>The account will be active after verification</strong>. Upon approval, our system will automatically generate a default random temporary password and email it directly to the Authorizing Administrator.
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.8rem; color: #0284C7; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                      <span>✓</span>
+                      <span>On your first sign-in, you will be prompted to replace the temporary password with your personal secure password.</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1343,6 +1383,68 @@ $generatedHospitalId = "HOSP-" . strtoupper(substr(md5(uniqid()), 0, 6));
   </div>
 </div>
 
+<!-- Apple-Style "Waiting for Approval" Animation Overlay -->
+<div id="waitingForApprovalOverlay" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: #FFFFFF; border-radius: 24px; padding: 42px 34px; max-width: 490px; width: 100%; text-align: center; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.9); transform: scale(0.95); animation: appleModalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+    
+    <!-- Luminous Animated Loader Graphic -->
+    <div style="position: relative; width: 84px; height: 84px; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center;">
+      <div style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0) 70%); animation: pulse-ring 2s infinite;"></div>
+      <div style="position: absolute; inset: 2px; border-radius: 50%; border: 3px solid #FEF3C7; border-top-color: #D97706; animation: spin-loader 1.2s linear infinite;"></div>
+      <div style="width: 58px; height: 58px; border-radius: 18px; background: linear-gradient(135deg, #FEF3C7, #FDE68A); display: flex; align-items: center; justify-content: center; font-size: 1.7rem; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.25);">
+        ⏳
+      </div>
+    </div>
+
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: #FFFBEB; border: 1px solid #FCD34D; color: #92400E; padding: 5px 14px; border-radius: 9999px; font-size: 0.78rem; font-weight: 700; margin-bottom: 12px; letter-spacing: 0.02em;">
+      <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #F59E0B; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);"></span>
+      <span>Awaiting Administrative Verification</span>
+    </div>
+
+    <h3 style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; font-size: 1.4rem; font-weight: 700; color: #0F172A; margin: 0 0 8px 0; letter-spacing: -0.02em;">
+      Waiting for Approval
+    </h3>
+
+    <p style="font-size: 0.9rem; color: #64748B; line-height: 1.55; margin: 0 0 22px 0;">
+      Registration for <strong id="approvalModalOrgName" style="color: #0F172A;">your organization</strong> has been submitted. The account will be active after verification by the administration.
+    </p>
+
+    <!-- Animated Smooth Progress Bar -->
+    <div style="background: #F1F5F9; border-radius: 9999px; height: 6px; width: 100%; overflow: hidden; margin-bottom: 12px;">
+      <div id="approvalProgressBar" style="background: linear-gradient(90deg, #D97706, #F59E0B); height: 100%; width: 0%; border-radius: 9999px; transition: width 3s linear;"></div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: #94A3B8; margin-bottom: 22px;">
+      <span>Redirecting to homepage</span>
+      <span><strong id="approvalCountdownText" style="color: #0F172A;">3</strong>s</span>
+    </div>
+
+    <div>
+      <a href="<?php echo BASE_URL; ?>/index.php" class="btn btn-primary" style="border-radius: 9999px; padding: 9px 26px; font-size: 0.88rem; font-weight: 700; text-decoration: none;">
+        <span>Return to Homepage Now</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<style>
+@keyframes appleModalPop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes spin-loader {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  50% { transform: scale(1.25); opacity: 0.2; }
+  100% { transform: scale(0.85); opacity: 0.6; }
+}
+</style>
+
 <script>
 let currentStep = 1;
 let isMobileVerified = false;
@@ -1357,15 +1459,18 @@ function setRegistrationRole(role) {
   const empSec = document.getElementById('employerRegistrationSection');
 
   if (role === 'candidate') {
-    candBtn.className = 'btn btn-primary';
-    empBtn.className = 'btn btn-outline';
-    candSec.style.display = 'block';
-    empSec.style.display = 'none';
+    if (candBtn) candBtn.className = 'btn btn-primary';
+    if (empBtn) empBtn.className = 'btn btn-outline';
+    if (candSec) candSec.style.display = 'block';
+    if (empSec) empSec.style.display = 'none';
   } else {
-    empBtn.className = 'btn btn-primary';
-    candBtn.className = 'btn btn-outline';
-    empSec.style.display = 'block';
-    candSec.style.display = 'none';
+    if (empBtn) empBtn.className = 'btn btn-primary';
+    if (candBtn) candBtn.className = 'btn btn-outline';
+    if (empSec) {
+      empSec.style.display = 'block';
+      goToEmpStep(1);
+    }
+    if (candSec) candSec.style.display = 'none';
   }
 }
 
@@ -2006,8 +2111,8 @@ function goToStep(step, direction = 'next') {
 }
 
 async function finishCandidateRegistration() {
-  const firstName = document.getElementById('regFirstName') ? document.getElementById('regFirstName').value.trim() : '';
-  const lastName = document.getElementById('regLastName') ? document.getElementById('regLastName').value.trim() : '';
+  const firstName = document.getElementById('regFirstName') ? document.getElementById('regFirstName').value.trim().toUpperCase() : '';
+  const lastName = document.getElementById('regLastName') ? document.getElementById('regLastName').value.trim().toUpperCase() : '';
   const email = document.getElementById('regEmail') ? document.getElementById('regEmail').value.trim() : '';
   const mobile = document.getElementById('regMobile') ? document.getElementById('regMobile').value.trim() : '';
   const pass = document.getElementById('candPass') ? document.getElementById('candPass').value : '';
@@ -2039,7 +2144,7 @@ async function finishCandidateRegistration() {
   const qualSelect = document.getElementById('qualDegree_1');
   const degree = (qualSelect && qualSelect.selectedOptions && qualSelect.selectedOptions[0] && qualSelect.selectedOptions[0].text) ? qualSelect.selectedOptions[0].text : 'Healthcare Professional';
   const specialty = document.getElementById('regPreferredDesignation') ? document.getElementById('regPreferredDesignation').value.trim() : (document.getElementById('regCurrentDesignation') ? document.getElementById('regCurrentDesignation').value.trim() : '');
-  const council = document.getElementById('regCouncilRegNo') ? document.getElementById('regCouncilRegNo').value.trim() : '';
+  const council = document.getElementById('regCouncilRegNo') ? document.getElementById('regCouncilRegNo').value.trim().toUpperCase() : '';
   const location = document.getElementById('regCurrentLoc') ? document.getElementById('regCurrentLoc').value.trim() : '';
   const experience = (typeof workStatus !== 'undefined' ? workStatus : 'experienced');
 
@@ -2071,7 +2176,7 @@ async function finishCandidateRegistration() {
     if (data.success) {
       showToast(data.message || 'Candidate Profile registered successfully! Welcome to HealthJobsGlobal.');
       setTimeout(() => {
-        window.location.href = data.redirect || '<?php echo BASE_URL; ?>/candidate-dashboard.php';
+        window.location.href = data.redirect || '<?php echo BASE_URL; ?>/index.php';
       }, 1000);
     } else {
       showToast(data.message || 'Registration failed. Please check your details.', 'error');
@@ -2082,9 +2187,9 @@ async function finishCandidateRegistration() {
     }
   } catch (err) {
     console.error('Candidate registration error:', err);
-    showToast('Candidate Profile registered! Redirecting to dashboard...');
+    showToast('Candidate Profile registered! Redirecting to home...');
     setTimeout(() => {
-      window.location.href = '<?php echo BASE_URL; ?>/candidate-dashboard.php';
+      window.location.href = '<?php echo BASE_URL; ?>/index.php';
     }, 1000);
   }
 }
@@ -2245,39 +2350,39 @@ function validateAndGoToEmpStep4() {
 }
 
 async function finishEmployerRegistration() {
-  const pass = document.getElementById('hospPass');
-  const confirmPass = document.getElementById('hospConfirmPass');
   const govCheck = document.getElementById('empGovernanceCheck');
   const btn = document.getElementById('hospitalRegSubmitBtn');
 
-  if (pass && (!pass.value || pass.value.length < 6)) {
-    showToast('Please create a password of at least 6 characters', 'error');
-    if (pass) { pass.focus(); highlightError(pass); }
-    return;
-  }
-  if (confirmPass && confirmPass.value !== pass.value) {
-    showToast('Password confirmation does not match', 'error');
-    confirmPass.focus(); highlightError(confirmPass);
-    return;
-  }
   if (govCheck && !govCheck.checked) {
     showToast('Please agree to the Authorizing Administrator governance terms', 'error');
     govCheck.focus();
     return;
   }
 
-  const orgName = document.getElementById('empOrgName') ? document.getElementById('empOrgName').value.trim() : '';
+  const orgName = document.getElementById('empOrgName') ? document.getElementById('empOrgName').value.trim().toUpperCase() : '';
   const orgCategory = document.getElementById('empOrgCategory') ? document.getElementById('empOrgCategory').value : '';
   const otherCatText = document.getElementById('empOtherCategoryText') ? document.getElementById('empOtherCategoryText').value.trim() : '';
+  const empScale = document.getElementById('empScaleCapacity') ? document.getElementById('empScaleCapacity').value : 'Medium (100 - 500 Beds / 250+ Staff)';
   const genEmail = document.getElementById('empOrgGeneralEmail') ? document.getElementById('empOrgGeneralEmail').value.trim() : '';
   const genPhone = document.getElementById('empOrgGeneralPhone') ? document.getElementById('empOrgGeneralPhone').value.trim() : '';
   const city = document.getElementById('empOrgCity') ? document.getElementById('empOrgCity').value.trim() : '';
   const address = document.getElementById('empOrgAddress') ? document.getElementById('empOrgAddress').value.trim() : '';
-  const adminName = document.getElementById('empAdminName') ? document.getElementById('empAdminName').value.trim() : '';
-  const adminDesig = document.getElementById('empAdminDesignation') ? document.getElementById('empAdminDesignation').value.trim() : '';
+  const pincode = document.getElementById('empOrgPincode') ? document.getElementById('empOrgPincode').value.trim() : '';
+  const country = document.getElementById('empOrgCountry') ? document.getElementById('empOrgCountry').value : 'India';
+  const adminName = document.getElementById('empAdminName') ? document.getElementById('empAdminName').value.trim().toUpperCase() : '';
+  const adminDesig = document.getElementById('empAdminDesignation') ? document.getElementById('empAdminDesignation').value.trim().toUpperCase() : '';
   const adminEmail = document.getElementById('empAdminEmail') ? document.getElementById('empAdminEmail').value.trim() : '';
   const adminPhone = document.getElementById('empAdminPhone') ? document.getElementById('empAdminPhone').value.trim() : '';
   const website = document.getElementById('empOrgWebsite') ? document.getElementById('empOrgWebsite').value.trim() : '';
+
+  // Collect checked services
+  const serviceCheckboxes = document.querySelectorAll('input[name="servicesLookingFor[]"]:checked');
+  const servicesList = [];
+  serviceCheckboxes.forEach(cb => {
+    const parentTitle = cb.closest('label') ? cb.closest('label').querySelector('div div:first-child')?.textContent : cb.value;
+    servicesList.push(parentTitle ? parentTitle.trim() : cb.value);
+  });
+  const otherServicesDetails = document.getElementById('empOtherServicesDetails') ? document.getElementById('empOtherServicesDetails').value.trim() : '';
 
   if (!orgName) {
     showToast('Please enter your Organization / Hospital Name', 'error');
@@ -2286,7 +2391,7 @@ async function finishEmployerRegistration() {
   }
 
   if (btn) {
-    btn.innerHTML = 'Activating Organization Account & Saving...';
+    btn.innerHTML = 'Submitting Registration for Admin Verification...';
     btn.disabled = true;
   }
 
@@ -2294,15 +2399,21 @@ async function finishEmployerRegistration() {
   formData.append('action', 'register_employer');
   formData.append('org_name', orgName);
   formData.append('org_category', orgCategory === 'other_vertical' && otherCatText ? otherCatText : orgCategory);
+  formData.append('operating_capacity', empScale);
   formData.append('general_email', genEmail);
+  formData.append('general_phone', genPhone);
   formData.append('admin_email', adminEmail);
+  formData.append('admin_phone', adminPhone);
   formData.append('phone', genPhone || adminPhone);
   formData.append('city', city);
   formData.append('address', address);
+  formData.append('pincode', pincode);
+  formData.append('country', country);
   formData.append('admin_name', adminName);
   formData.append('admin_designation', adminDesig);
   formData.append('website', website);
-  formData.append('password', pass ? pass.value : '');
+  formData.append('services', servicesList.join(', '));
+  formData.append('other_services_details', otherServicesDetails);
 
   try {
     const res = await fetch('register.php', {
@@ -2311,10 +2422,7 @@ async function finishEmployerRegistration() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(data.message || `${orgName} registered successfully! Submitted for Admin verification.`);
-      setTimeout(() => {
-        window.location.href = data.redirect || ('<?php echo BASE_URL; ?>/login.php?pending_approval=' + encodeURIComponent(orgName));
-      }, 1200);
+      triggerWaitingForApprovalAnimation(orgName);
     } else {
       showToast(data.message || 'Registration failed. Please check the details.', 'error');
       if (btn) {
@@ -2324,11 +2432,40 @@ async function finishEmployerRegistration() {
     }
   } catch (err) {
     console.error('Employer registration error:', err);
-    showToast(`${orgName} registered! Awaiting admin approval before login.`);
-    setTimeout(() => {
-      window.location.href = '<?php echo BASE_URL; ?>/login.php?pending_approval=' + encodeURIComponent(orgName);
-    }, 1200);
+    showToast('An error occurred during submission. Please try again.', 'error');
+    if (btn) {
+      btn.innerHTML = '<span>Complete Registration & Access Solutions</span>';
+      btn.disabled = false;
+    }
   }
+}
+
+function triggerWaitingForApprovalAnimation(orgName) {
+  const overlay = document.getElementById('waitingForApprovalOverlay');
+  const orgNameEl = document.getElementById('approvalModalOrgName');
+  const bar = document.getElementById('approvalProgressBar');
+  const countText = document.getElementById('approvalCountdownText');
+  
+  if (orgNameEl) orgNameEl.textContent = orgName || 'your organization';
+  if (overlay) {
+    overlay.style.display = 'flex';
+  }
+
+  // Animate progress bar filling over 3 seconds
+  setTimeout(() => {
+    if (bar) bar.style.width = '100%';
+  }, 50);
+
+  // 3-second countdown then navigate to normal index page
+  let remaining = 3;
+  const timer = setInterval(() => {
+    remaining--;
+    if (countText) countText.textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(timer);
+      window.location.href = '<?php echo BASE_URL; ?>/index.php';
+    }
+  }, 1000);
 }
 
 // Enable direct click navigation on Step Indicator Bubbles for Candidate Wizard

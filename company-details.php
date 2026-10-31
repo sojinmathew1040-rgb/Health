@@ -5,19 +5,23 @@
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/functions.php';
 
-$companyId = intval($_GET['id'] ?? 1);
-$company = getCompanyById($companyId);
+$companyId = intval($_GET['id'] ?? 0);
+$company = $companyId > 0 ? getCompanyById($companyId) : ($featuredCompanies[0] ?? []);
+
+// If the hospital doesn't exist or is deleted / unverified, redirect to hospital directory
+if (empty($company) || empty($company['id']) || empty($company['name'])) {
+    header("Location: " . BASE_URL . "/companies.php");
+    exit;
+}
 
 $pageTitle = $company['name'] . " — Healthcare Profile & Jobs | HealthJobsGlobal";
 $pageDescription = "Explore clinical and administrative career opportunities at " . $company['name'] . " in " . $company['location'];
 
 // Filter jobs for this company
 $companyJobs = array_filter($featuredJobs, function($j) use ($company) {
-    return $j['company_id'] === $company['id'];
+    return ((int)($j['company_id'] ?? 0) === (int)$company['id']) 
+        || (strcasecmp((string)($j['company'] ?? ''), (string)$company['name']) === 0);
 });
-if (empty($companyJobs)) {
-    $companyJobs = array_slice($featuredJobs, 0, 3);
-}
 
 require_once __DIR__ . '/components/header.php';
 ?>
@@ -138,11 +142,22 @@ require_once __DIR__ . '/components/header.php';
           </div>
         </div>
 
-        <div class="grid" style="grid-template-columns: 1fr; gap: 16px;">
-          <?php foreach ($companyJobs as $job): ?>
-            <?php require __DIR__ . '/components/job-card.php'; ?>
-          <?php endforeach; ?>
-        </div>
+        <?php if (empty($companyJobs)): ?>
+          <div style="background: #FFFFFF; border: 1px dashed var(--color-border); border-radius: var(--radius-lg); padding: 32px 24px; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 8px;">🩺</div>
+            <h4 style="color: var(--color-primary); font-size: 1.1rem; margin-bottom: 6px;">No Active Openings Currently Posted</h4>
+            <p style="color: var(--color-text-secondary); font-size: 0.88rem; max-width: 480px; margin: 0 auto 16px auto;">
+              <?php echo htmlspecialchars($company['name']); ?> does not have live openings listed at this moment. You can register your verified profile to be matched when new appointments open.
+            </p>
+            <a href="<?php echo BASE_URL; ?>/jobs.php" class="btn btn-primary btn-sm">Explore Other Hospital Openings</a>
+          </div>
+        <?php else: ?>
+          <div class="grid" style="grid-template-columns: 1fr; gap: 16px;">
+            <?php foreach ($companyJobs as $job): ?>
+              <?php require __DIR__ . '/components/job-card.php'; ?>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
       </section>
 
     </main>

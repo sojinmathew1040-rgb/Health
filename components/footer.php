@@ -100,8 +100,10 @@ require_once __DIR__ . '/../includes/functions.php';
   </div>
 </footer>
 
-<!-- Include Universal Quick Apply Modal -->
-<?php require_once __DIR__ . '/apply-modal.php'; ?>
+<!-- Include Universal Quick Apply Modal (Candidates & Guests Only) -->
+<?php if (!isLoggedIn() || ((getLoggedInUser()['role'] ?? '') !== 'employer')): ?>
+  <?php require_once __DIR__ . '/apply-modal.php'; ?>
+<?php endif; ?>
 
 <!-- CDN Frontend Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -109,9 +111,9 @@ require_once __DIR__ . '/../includes/functions.php';
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <!-- Custom Frontend Application Scripts -->
-<script src="<?php echo BASE_URL; ?>/assets/js/main.js?v=3.1"></script>
-<script src="<?php echo BASE_URL; ?>/assets/js/animations.js?v=3.1"></script>
-<script src="<?php echo BASE_URL; ?>/assets/js/particles.js?v=3.1"></script>
+<script src="<?php echo BASE_URL; ?>/assets/js/main.js?v=4.2"></script>
+<script src="<?php echo BASE_URL; ?>/assets/js/animations.js?v=4.2"></script>
+<script src="<?php echo BASE_URL; ?>/assets/js/particles.js?v=4.2"></script>
 
 </body>
 </html>

@@ -27,6 +27,8 @@ if (!ob_get_level()) {
     ob_start();
 }
 
+require_once __DIR__ . '/db.php';
+
 // Handle Demo Login / Logout testing triggers
 if (isset($_GET['demo_login'])) {
     if ($_GET['demo_login'] === 'candidate') {
@@ -161,118 +163,66 @@ $healthcareDepartments = [
     ]
 ];
 
-// Rich Healthcare Hospitals (Employers)
-$featuredCompanies = [
-    [
-        'id' => 1,
-        'name' => 'Rajagiri Hospital',
-        'slug' => 'rajagiri-hospital',
-        'logo_text' => 'RAJAG',
-        'badge' => 'NABH & JCI Accredited',
-        'type' => 'Quaternary Care Multi-Specialty Hospital',
-        'location' => 'Chunangamvely, Aluva, Kochi, Kerala',
-        'openings' => 2,
-        'rating' => '4.85',
-        'verified' => true,
-        'overview' => 'Rajagiri Hospital is an internationally accredited quaternary care hospital in Kochi with 500+ beds, advanced cardiac care, multi-organ transplants, and oncology.'
-    ],
-    [
-        'id' => 2,
-        'name' => 'VPS Lakeshore Hospital',
-        'slug' => 'vps-lakeshore',
-        'logo_text' => 'LAKES',
-        'badge' => 'NABH & NABL Accredited',
-        'type' => 'Multi-Super Speciality Quaternary Care',
-        'location' => 'NH 66 Bypass, Nettoor, Maradu, Kochi, Kerala',
-        'openings' => 2,
-        'rating' => '4.8',
-        'verified' => true,
-        'overview' => 'VPS Lakeshore Hospital is one of the largest tertiary/quaternary care hospitals in South India specializing in gastroenterology, organ transplant, cardiology, and joint replacement.'
-    ]
-];
+// Dynamic Healthcare Hospitals (Verified Employers from Database)
+$featuredCompanies = [];
+if (!empty($con) && !$con->connect_error) {
+    // Only verified hospitals (verified = 1)
+    $resComp = $con->query("SELECT h.*, 
+        (SELECT COUNT(*) FROM `jobs` WHERE (`hospital_id` = h.id OR `company` = h.name) AND `status` = 'Active') as openings_count
+        FROM `hospitals` h 
+        WHERE h.verified = 1 
+        ORDER BY h.id DESC");
+    if ($resComp) {
+        while ($cRow = $resComp->fetch_assoc()) {
+            $cRow['id'] = (int)$cRow['id'];
+            $cRow['openings'] = (int)($cRow['openings_count'] ?? 0);
+            $cRow['verified'] = true;
+            if (empty($cRow['logo_text'])) {
+                $cRow['logo_text'] = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $cRow['name']), 0, 4));
+            }
+            if (empty($cRow['badge'])) {
+                $cRow['badge'] = 'NABH & JCI Accredited';
+            }
+            if (empty($cRow['type'])) {
+                $cRow['type'] = 'Quaternary Care Multi-Specialty Hospital';
+            }
+            if (empty($cRow['overview'])) {
+                $cRow['overview'] = $cRow['name'] . ' is a premier verified healthcare establishment registered on HealthJobsGlobal.';
+            }
+            $featuredCompanies[] = $cRow;
+        }
+    }
+}
 
-// Rich Healthcare Featured Jobs (Purely Hospital Medical & Nursing - 2 per Hospital)
-$featuredJobs = [
-    // 2 Jobs for Rajagiri Hospital (ID 1)
-    [
-        'id' => 101,
-        'title' => 'Senior Consultant – Interventional Cardiology',
-        'company' => 'Rajagiri Hospital',
-        'company_id' => 1,
-        'location' => 'Aluva, Kochi, Kerala, India',
-        'department' => 'Doctors & Clinical Specialists',
-        'specialty' => 'Cardiology',
-        'experience' => '5+ Years Post-DM/DNB',
-        'employment_type' => 'Full Time · On-Site',
-        'salary' => '₹45,00,000 - ₹55,00,000 / year',
-        'council_req' => 'Travancore-Cochin Medical Council / NMC Active',
-        'qualification' => 'MBBS, MD (Gen Med), DM / DNB (Cardiology)',
-        'posted' => 'Just now',
-        'featured' => true,
-        'urgent' => true,
-        'tags' => ['Cath Lab', 'Primary PCI', 'TAVI / Structural Heart'],
-        'description' => 'We are seeking an experienced Interventional Cardiologist to lead high-volume Cath Lab procedures, complex coronary interventions, and participate in clinical mentorship.'
-    ],
-    [
-        'id' => 102,
-        'title' => 'Nurse In-Charge – Intensive Care Unit (ICU)',
-        'company' => 'Rajagiri Hospital',
-        'company_id' => 1,
-        'location' => 'Aluva, Kochi, Kerala, India',
-        'department' => 'Nursing Specialties',
-        'specialty' => 'Critical Care',
-        'experience' => '3 - 6 Years in Level-3 ICU',
-        'employment_type' => 'Full Time · Rotational Shifts',
-        'salary' => '₹5,50,000 - ₹7,50,000 / year',
-        'council_req' => 'Kerala Nursing Council (KNC) Registered',
-        'qualification' => 'B.Sc Nursing / Post Basic B.Sc (Critical Care Certified)',
-        'posted' => '1 day ago',
-        'featured' => true,
-        'urgent' => false,
-        'tags' => ['Ventilator Management', 'Hemodynamic Monitoring', 'BLS & ACLS'],
-        'description' => 'Lead a dedicated squad of critical care nurses in our 40-bed medical-surgical ICU. Ensure adherence to JCI clinical protocols and patient safety benchmarks.'
-    ],
+// Dynamic Healthcare Jobs (Active Jobs from Verified Hospitals in Database)
+$featuredJobs = [];
+if (!empty($con) && !$con->connect_error) {
+    // Clean up any lingering jobs from deleted hospitals
+    cleanupOrphanJobs($con);
 
-    // 2 Jobs for VPS Lakeshore Hospital (ID 2)
-    [
-        'id' => 103,
-        'title' => 'Consultant Medical Gastroenterologist',
-        'company' => 'VPS Lakeshore Hospital',
-        'company_id' => 2,
-        'location' => 'Nettoor, Maradu, Kochi, Kerala, India',
-        'department' => 'Doctors & Clinical Specialists',
-        'specialty' => 'Gastroenterology',
-        'experience' => '4+ Years Post-DM/DNB',
-        'employment_type' => 'Full Time · Permanent Contract',
-        'salary' => '₹40,00,000 - ₹50,00,000 / year',
-        'council_req' => 'Travancore-Cochin Medical Council / NMC Registered',
-        'qualification' => 'MBBS, MD (Medicine), DM / DNB (Medical Gastroenterology)',
-        'posted' => 'Just now',
-        'featured' => true,
-        'urgent' => true,
-        'tags' => ['Therapeutic Endoscopy', 'ERCP', 'Liver Disease'],
-        'description' => 'Direct outpatient & inpatient gastroenterology services, therapeutic endoscopies, ERCP, and lead liver transplant multidisciplinary clinical rounds.'
-    ],
-    [
-        'id' => 104,
-        'title' => 'Consultant Emergency Medicine & Trauma Care',
-        'company' => 'VPS Lakeshore Hospital',
-        'company_id' => 2,
-        'location' => 'Nettoor, Maradu, Kochi, Kerala, India',
-        'department' => 'Doctors & Clinical Specialists',
-        'specialty' => 'Emergency Medicine',
-        'experience' => '3 - 6 Years in Level-1 Trauma Center',
-        'employment_type' => 'Full Time · Rotational Emergency Roster',
-        'salary' => '₹32,00,000 - ₹42,00,000 / year',
-        'council_req' => 'Travancore-Cochin Medical Council / NMC Registered',
-        'qualification' => 'MBBS, MD / DNB (Emergency Medicine) / MRCEM',
-        'posted' => '1 day ago',
-        'featured' => true,
-        'urgent' => true,
-        'tags' => ['Polytrauma', 'POCUS Ultrasound', 'Emergency Resuscitation'],
-        'description' => 'Manage acute polytrauma triage, resuscitation protocols, emergency ultrasound (POCUS), and critical airway procedures in a high-volume emergency department.'
-    ]
-];
+    // Only Active jobs belonging to active, verified hospitals
+    $resJobs = $con->query("SELECT j.*, h.name as hospital_name, h.slug as hospital_slug, h.verified as hospital_verified, h.logo_text as hospital_logo
+        FROM `jobs` j
+        INNER JOIN `hospitals` h ON (j.hospital_id = h.id OR j.company = h.name)
+        WHERE h.verified = 1 AND j.status = 'Active'
+        ORDER BY j.featured DESC, j.id DESC");
+    if ($resJobs) {
+        while ($jRow = $resJobs->fetch_assoc()) {
+            $jRow['id'] = (int)$jRow['id'];
+            $jRow['company_id'] = (int)($jRow['hospital_id'] ?? 0);
+            $jRow['company'] = $jRow['hospital_name'] ?: $jRow['company'];
+            if (!empty($jRow['tags']) && is_string($jRow['tags'])) {
+                $jRow['tags'] = array_map('trim', explode(',', $jRow['tags']));
+            } elseif (empty($jRow['tags'])) {
+                $jRow['tags'] = [];
+            }
+            $jRow['posted'] = !empty($jRow['created_at']) ? date('d M Y', strtotime($jRow['created_at'])) : (!empty($jRow['posted_at']) ? date('d M Y', strtotime($jRow['posted_at'])) : 'Recently');
+            $jRow['featured'] = !empty($jRow['featured']);
+            $jRow['urgent'] = !empty($jRow['urgent']);
+            $featuredJobs[] = $jRow;
+        }
+    }
+}
 
 // Helper functions for easy querying (PHP 8.4 array_find compatible)
 function getFeaturedJobs(int $limit = 6): array {
@@ -281,7 +231,36 @@ function getFeaturedJobs(int $limit = 6): array {
 }
 
 function getJobById(int|string $id): array {
-    global $featuredJobs;
+    global $con, $featuredJobs;
+    if (!empty($con) && !$con->connect_error) {
+        $stmt = $con->prepare("SELECT j.*, h.name as hospital_name, h.slug as hospital_slug, h.verified as hospital_verified, h.logo_text as hospital_logo
+            FROM `jobs` j
+            INNER JOIN `hospitals` h ON (j.hospital_id = h.id OR j.company = h.name)
+            WHERE j.id = ? AND h.verified = 1 AND j.status = 'Active' LIMIT 1");
+        if ($stmt) {
+            $jId = (int)$id;
+            $stmt->bind_param("i", $jId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && $j = $res->fetch_assoc()) {
+                $stmt->close();
+                $j['id'] = (int)$j['id'];
+                $j['company_id'] = (int)($j['hospital_id'] ?? 0);
+                $j['company'] = $j['hospital_name'] ?: $j['company'];
+                if (!empty($j['tags']) && is_string($j['tags'])) {
+                    $j['tags'] = array_map('trim', explode(',', $j['tags']));
+                } elseif (empty($j['tags'])) {
+                    $j['tags'] = [];
+                }
+                $j['posted'] = !empty($j['created_at']) ? date('d M Y', strtotime($j['created_at'])) : (!empty($j['posted_at']) ? date('d M Y', strtotime($j['posted_at'])) : 'Recently');
+                $j['featured'] = !empty($j['featured']);
+                $j['urgent'] = !empty($j['urgent']);
+                return $j;
+            }
+            $stmt->close();
+        }
+    }
+
     if (function_exists('array_find')) {
         $found = array_find($featuredJobs, fn(array $job): bool => (string)$job['id'] === (string)$id);
         if ($found !== null) {
@@ -292,11 +271,40 @@ function getJobById(int|string $id): array {
             if ((string)$job['id'] === (string)$id) return $job;
         }
     }
-    return $featuredJobs[0] ?? []; // fallback
+    return [];
 }
 
 function getCompanyById(int|string $id): array {
-    global $featuredCompanies;
+    global $con, $featuredCompanies;
+    if (!empty($con) && !$con->connect_error) {
+        $stmt = $con->prepare("SELECT h.*, 
+            (SELECT COUNT(*) FROM `jobs` WHERE (`hospital_id` = h.id OR `company` = h.name) AND `status` = 'Active') as openings_count
+            FROM `hospitals` h WHERE h.id = ? AND h.verified = 1 LIMIT 1");
+        if ($stmt) {
+            $cId = (int)$id;
+            $stmt->bind_param("i", $cId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && $c = $res->fetch_assoc()) {
+                $stmt->close();
+                $c['id'] = (int)$c['id'];
+                $c['openings'] = (int)($c['openings_count'] ?? 0);
+                $c['verified'] = true;
+                if (empty($c['logo_text'])) {
+                    $c['logo_text'] = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $c['name']), 0, 4));
+                }
+                if (empty($c['badge'])) {
+                    $c['badge'] = 'NABH & JCI Accredited';
+                }
+                if (empty($c['type'])) {
+                    $c['type'] = 'Quaternary Care Multi-Specialty Hospital';
+                }
+                return $c;
+            }
+            $stmt->close();
+        }
+    }
+
     if (function_exists('array_find')) {
         $found = array_find($featuredCompanies, fn(array $c): bool => (string)$c['id'] === (string)$id);
         if ($found !== null) {
@@ -307,5 +315,5 @@ function getCompanyById(int|string $id): array {
             if ((string)$c['id'] === (string)$id) return $c;
         }
     }
-    return $featuredCompanies[0] ?? [];
+    return [];
 }

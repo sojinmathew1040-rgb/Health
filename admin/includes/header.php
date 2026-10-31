@@ -24,7 +24,7 @@ $currentAdminPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php echo htmlspecialchars($pageTitle ?? 'Admin Control Center — HealthJobsGlobal'); ?></title>
-  <link rel="stylesheet" href="assets/css/admin.css?v=1.0">
+  <link rel="stylesheet" href="assets/css/admin.css?v=2.1">
 </head>
 <body>
 
